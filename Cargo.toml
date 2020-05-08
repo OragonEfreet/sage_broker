@@ -13,4 +13,4 @@ categories = ["command-line-utilities", "network-programming", "web-programming"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sage_mqtt = "0.1.6"
+sage_mqtt = { git = "https://github.com/OragonEfreet/sage_mqtt", branch = "dev" }
