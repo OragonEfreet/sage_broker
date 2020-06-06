@@ -10,12 +10,10 @@ use std::time::{Duration, Instant};
 const TIMEOUT_DELAY: u16 = 3;
 
 async fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
-    let handle = task::spawn(
-        Broker::from_config(
-            &BrokerConfig::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY),
-        )
-        .run(),
-    );
+    let handle = {
+        let config = &BrokerConfig::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY);
+        Broker::from_config(config).run()
+    };
 
     // Makes 5 connexion attemps, every 1 second until a connexion is made, or
     // pannic

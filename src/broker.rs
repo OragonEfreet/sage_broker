@@ -4,7 +4,7 @@ use async_std::{
     io::BufReader,
     net::{TcpListener, TcpStream, ToSocketAddrs},
     prelude::*,
-    task,
+    task::{self, JoinHandle},
 };
 use futures::{channel::mpsc, SinkExt};
 use log::{error, info};
@@ -36,7 +36,7 @@ impl Broker {
         }
     }
 
-    pub async fn run(self) {
+    pub fn run(self) -> JoinHandle<()> {
         let mut event_sender = self.event_sender.clone();
         task::spawn(event_loop(
             self.config.timeout_delay,
@@ -45,41 +45,44 @@ impl Broker {
         ));
 
         let addr = self.config.addr;
-        if let Ok(addrs) = addr.to_socket_addrs().await {
-            info!(
-                "Listening to {}",
-                addrs
-                    .map(|addr| addr.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            );
+        task::spawn(async move {
+            if let Ok(addrs) = addr.to_socket_addrs().await {
+                info!(
+                    "Listening to {}",
+                    addrs
+                        .map(|addr| addr.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
 
-            // Listen to any connection
-            if let Ok(listener) = TcpListener::bind(addr).await {
-                let mut incoming = listener.incoming();
-                while let Some(stream) = incoming.next().await {
-                    match stream {
-                        Err(e) => {
-                            error!("Cannot accept Tcp stream: {}", e.to_string());
-                        }
-                        Ok(stream) => {
-                            if let Ok(peer_addr) = stream.peer_addr() {
-                                info!("Accepting from {}", peer_addr);
-                                if let Err(e) = event_sender.send(Event::NewPeer(stream)).await {
-                                    error!("{:?}", e);
+                // Listen to any connection
+                if let Ok(listener) = TcpListener::bind(addr).await {
+                    let mut incoming = listener.incoming();
+                    while let Some(stream) = incoming.next().await {
+                        match stream {
+                            Err(e) => {
+                                error!("Cannot accept Tcp stream: {}", e.to_string());
+                            }
+                            Ok(stream) => {
+                                if let Ok(peer_addr) = stream.peer_addr() {
+                                    info!("Accepting from {}", peer_addr);
+                                    if let Err(e) = event_sender.send(Event::NewPeer(stream)).await
+                                    {
+                                        error!("{:?}", e);
+                                    }
+                                } else {
+                                    error!("Cannot get peer address");
                                 }
-                            } else {
-                                error!("Cannot get peer address");
                             }
                         }
                     }
+                } else {
+                    error!("Cannot listen socket");
                 }
             } else {
-                error!("Cannot listen socket");
+                error!("Cannot compute socket addressed");
             }
-        } else {
-            error!("Cannot compute socket addressed");
-        }
+        })
     }
 }
 
