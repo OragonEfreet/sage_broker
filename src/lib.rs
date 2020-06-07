@@ -4,9 +4,5 @@
 #![allow(clippy::large_enum_variant)]
 
 mod broker;
-mod broker_config;
-mod event;
-
+pub mod service;
 pub use broker::Broker;
-pub use broker_config::BrokerConfig;
-use event::Event;

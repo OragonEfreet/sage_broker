@@ -3,7 +3,7 @@ use async_std::{
     net::TcpStream,
     task::{self, JoinHandle},
 };
-use sage_broker::{Broker, BrokerConfig};
+use sage_broker::{service, Broker};
 use sage_mqtt::Packet;
 use std::time::{Duration, Instant};
 
@@ -11,8 +11,8 @@ const TIMEOUT_DELAY: u16 = 3;
 
 async fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
     let handle = {
-        let config = &BrokerConfig::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY);
-        Broker::from_config(config).run()
+        let config = Broker::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY);
+        service::start(config)
     };
 
     // Makes 5 connexion attemps, every 1 second until a connexion is made, or
