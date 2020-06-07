@@ -1,12 +1,12 @@
-use async_std::net::TcpStream;
-use futures::channel::mpsc;
-
+use crate::service::Peer;
+use async_std::{
+    net::TcpStream,
+    sync::{Arc, Mutex},
+};
 use sage_mqtt::Packet;
 
 pub enum Event {
     NewPeer(TcpStream),
     Control(Packet),
+    EndPeer(Arc<Mutex<Peer>>),
 }
-
-pub type EventSender = mpsc::UnboundedSender<Event>;
-pub type EventReceiver = mpsc::UnboundedReceiver<Event>;
