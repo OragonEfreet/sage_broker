@@ -1,14 +1,14 @@
 use crate::service::{Event, EventSender, Peer};
 use async_std::{
     future,
-    io::BufReader,
+    io::{BufReader, ErrorKind},
     net::TcpStream,
     sync::{Arc, Mutex},
     task,
 };
 use futures::SinkExt;
 use log::{error, info};
-use sage_mqtt::Packet;
+use sage_mqtt::{ConnAck, Packet, ReasonCode, Error};
 use std::time::Duration;
 
 pub fn listen_peer(
@@ -35,11 +35,30 @@ pub fn listen_peer(
                     }
                     Err(e) => {
                         error!("Error: {:?}", e);
+                        let reason_code = match e {
+                            Error::Io(e) => {
+                                match e.kind() {
+                                    ErrorKind::UnexpectedEof => ReasonCode::ProtocolError,
+                                    _ => ReasonCode::MalformedPacket,
+                                }
+                            },
+                            _ => ReasonCode::UnspecifiedError,
+                        };
+                        let packet = ConnAck {
+                            reason_code,
+                            ..Default::default()
+                        };
+                        peer.lock().await.send(packet.into()).await;
                         break;
                     }
                 }
             } else {
-                error!("Time out");
+                println!("THIS IS A TIMEOUT");
+                let packet = ConnAck {
+                    reason_code: ReasonCode::UnspecifiedError,
+                    ..Default::default()
+                };
+                peer.lock().await.send(packet.into()).await;
                 break;
             }
         }

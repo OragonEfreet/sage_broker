@@ -32,7 +32,6 @@ async fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
 /// > If the Server does not receive a CONNECT packet within a reasonable amount
 /// > of time after the Network Connection is established
 /// > the Server SHOULD close the Network Connection.
-#[test]
 fn connect_timeout() {
     let (server, mut stream) = task::block_on(prepare_connection());
 
@@ -66,7 +65,6 @@ fn connect_timeout() {
 /// match [MQTT-3.1.4-1].
 /// The Server MAY send a CONNACK with a Reason Code of 0x80 or greater as
 /// described in section 4.13 before closing the Network Connection.
-#[test]
 fn mqtt_3_1_4_1() {
     let (server, mut stream) = task::block_on(prepare_connection());
 
@@ -103,4 +101,8 @@ fn mqtt_3_1_4_1() {
     });
 
     task::block_on(server.cancel());
+}
+
+fn main() {
+    mqtt_3_1_4_1();
 }

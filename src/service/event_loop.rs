@@ -14,7 +14,7 @@ pub async fn event_loop(
     while let Some(event) = event_receiver.next().await {
         match event {
             Event::EndPeer(peer) => {
-                debug!("End peer {:?}", peer);
+                debug!("End peer");
             }
             Event::NewPeer(stream) => {
                 match stream.peer_addr() {
