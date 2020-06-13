@@ -1,7 +1,4 @@
-use crate::{
-    service::{self, Event},
-    Broker,
-};
+use crate::{service, Broker, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,

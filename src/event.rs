@@ -1,4 +1,4 @@
-use crate::service::Peer;
+use crate::Peer;
 use async_std::{
     net::TcpStream,
     sync::{Arc, Mutex},

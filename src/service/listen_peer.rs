@@ -1,4 +1,4 @@
-use crate::service::{Event, EventSender, Peer};
+use crate::{Event, EventSender, Peer};
 use async_std::{
     future,
     io::BufReader,

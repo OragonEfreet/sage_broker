@@ -1,4 +1,4 @@
-use crate::service::PacketSender;
+use crate::PacketSender;
 use async_std::task::JoinHandle;
 use futures::SinkExt;
 use log::error;

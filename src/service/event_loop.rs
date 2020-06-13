@@ -1,6 +1,6 @@
 use crate::{
-    service::{self, sender_loop, Event, EventReceiver, EventSender, Peer},
-    Broker,
+    service::{self, sender_loop},
+    Broker, Event, EventReceiver, EventSender, Peer,
 };
 use async_std::{prelude::*, sync::Arc, task};
 use futures::channel::mpsc;

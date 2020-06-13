@@ -1,4 +1,4 @@
-use crate::service::PacketReceiver;
+use crate::PacketReceiver;
 use async_std::{net::TcpStream, prelude::*, sync::Arc};
 use log::error;
 
