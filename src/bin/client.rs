@@ -8,7 +8,7 @@ fn main() -> std::io::Result<()> {
 
     for _ in 0..2 {
         let mut buffer = Vec::new();
-        let packet = Packet::Publish(Default::default());
+        let packet = Packet::Connect(Default::default());
 
         if let Ok(n) = task::block_on(packet.encode(&mut buffer)) {
             println!("Sending {} bytes", n);

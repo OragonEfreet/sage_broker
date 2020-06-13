@@ -7,6 +7,6 @@ use sage_mqtt::Packet;
 
 pub enum Event {
     NewPeer(TcpStream),
-    Control(Packet),
+    Control(Arc<Mutex<Peer>>, Packet),
     EndPeer(Arc<Mutex<Peer>>),
 }

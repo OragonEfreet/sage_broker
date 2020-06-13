@@ -10,6 +10,7 @@ pub struct Peer {
     client_id: String,
     packet_sender: PacketSender,
     sender_handle: JoinHandle<()>,
+    closing: bool,
 }
 
 impl Peer {
@@ -19,7 +20,19 @@ impl Peer {
             client_id,
             packet_sender,
             sender_handle,
+            closing: false,
         }
+    }
+
+    pub fn closing(&self) -> bool {
+        self.closing
+    }
+
+    pub async fn close(&mut self, packet: Option<Packet>) {
+        if let Some(packet) = packet {
+            self.send(packet).await;
+        }
+        self.closing = true;
     }
 
     pub async fn send(&mut self, packet: Packet) {

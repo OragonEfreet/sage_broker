@@ -5,6 +5,7 @@ use crate::{
 use async_std::{prelude::*, sync::Arc, task};
 use futures::channel::mpsc;
 use log::{debug, error, info};
+use sage_mqtt::{ConnAck, ReasonCode};
 
 pub async fn event_loop(
     config: Arc<Broker>,
@@ -13,7 +14,7 @@ pub async fn event_loop(
 ) {
     while let Some(event) = event_receiver.next().await {
         match event {
-            Event::EndPeer(peer) => {
+            Event::EndPeer(_) => {
                 debug!("End peer");
             }
             Event::NewPeer(stream) => {
@@ -37,8 +38,18 @@ pub async fn event_loop(
                     }
                 }
             }
-            Event::Control(_) => {
-                info!("We got a packet!");
+            Event::Control(peer, packet) => {
+                info!("Received a packet. Drop it");
+                match packet {
+                    _ => {
+                        let packet = ConnAck {
+                            reason_code: ReasonCode::ImplementationSpecificError,
+                            ..Default::default()
+                        }
+                        .into();
+                        peer.lock().await.close(Some(packet)).await;
+                    }
+                }
             }
         }
     }

@@ -3,29 +3,17 @@ use async_std::{
     net::TcpStream,
     task::{self, JoinHandle},
 };
-use sage_broker::{service, Broker};
+use sage_broker::Broker;
 use sage_mqtt::{Packet, ReasonCode};
 use std::time::{Duration, Instant};
 
+mod setup;
+
 const TIMEOUT_DELAY: u16 = 3;
 
-async fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
-    let handle = {
-        let config = Broker::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY);
-        service::start(config)
-    };
-
-    // Makes 5 connexion attemps, every 1 second until a connexion is made, or
-    // pannic
-    for _ in 0u8..5u8 {
-        if let Ok(stream) = TcpStream::connect("localhost:6788").await {
-            return (handle, stream);
-        }
-
-        task::sleep(Duration::from_secs(1)).await;
-    }
-
-    panic!("Cannot establish connection");
+fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
+    let config = Broker::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY);
+    setup::prepare_connection(config)
 }
 
 /// Requirements:
@@ -34,7 +22,7 @@ async fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
 /// > the Server SHOULD close the Network Connection.
 #[test]
 fn connect_timeout() {
-    let (server, mut stream) = task::block_on(prepare_connection());
+    let (server, mut stream) = prepare_connection();
 
     task::block_on(async {
         let now = Instant::now();
@@ -68,7 +56,7 @@ fn connect_timeout() {
 /// described in section 4.13 before closing the Network Connection.
 #[test]
 fn mqtt_3_1_4_1() {
-    let (server, mut stream) = task::block_on(prepare_connection());
+    let (server, mut stream) = prepare_connection();
 
     task::block_on(async {
         // Send an invalid connect packet and wait for an immediate disconnection
@@ -76,9 +64,9 @@ fn mqtt_3_1_4_1() {
         let packet = Packet::Connect(Default::default());
         let mut buffer = Vec::new();
         packet.encode(&mut buffer).await.unwrap();
-        println!("Will send {:?}", buffer);
+        buffer[0] |= 0b1111; // Invalidate the packet
 
-        while let Err(_) = stream.write(&buffer[..3]).await {println!(".");}
+        while let Err(_) = stream.write(&buffer).await {}
 
         // Wait for a response from the server within the next seconds
         let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
@@ -96,11 +84,23 @@ fn mqtt_3_1_4_1() {
                 let packet = Packet::decode(&mut buf).await.unwrap();
                 assert!(matches!(packet, Packet::ConnAck(_)));
                 if let Packet::ConnAck(packet) = packet {
-                    println!("==> {:?}", packet.reason_code);
+                    assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
                 }
             }
         }
     });
 
     task::block_on(server.cancel());
+}
+
+/// The Server MAY check that the contents of the CONNECT packet meet any
+/// further restrictions and SHOULD perform authentication and authorization
+/// checks. If any of these checks fail, it MUST close the Network Connection
+/// [MQTT-3.1.4-2].
+/// Before closing the Network Connection, it MAY send an appropriate CONNACK
+/// response with a Reason Code of 0x80 or greater as described in section 3.2
+/// and section 4.13.
+#[test]
+fn mqtt_3_1_4_2() {
+    // TODODO
 }
