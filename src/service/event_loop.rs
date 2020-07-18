@@ -42,7 +42,7 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
                 match stream.peer_addr() {
                     Err(e) => error!("Cannot get peer addr: {:?}", e),
                     Ok(_) => {
-                        // New peer
+                        // New peer (no client for now)
                         // Create the packet send/receive channel
                         // Launch the sender loop
                         // Create peer
