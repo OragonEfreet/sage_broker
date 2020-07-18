@@ -1,4 +1,4 @@
-use crate::{Event, EventSender, Peer};
+use crate::{Broker, Event, Peer};
 use async_std::{
     future,
     io::BufReader,
@@ -11,20 +11,14 @@ use log::{error, info};
 use sage_mqtt::{ConnAck, Packet, ReasonCode};
 use std::time::Duration;
 
-pub fn listen_peer(
-    peer: Arc<RwLock<Peer>>,
-    timeout_delay: u16,
-    mut event_sender: EventSender,
-    stream: Arc<TcpStream>,
-) {
-    let out_time = Duration::from_secs(((timeout_delay as f32) * 1.5) as u64);
-
+pub fn listen_peer(peer: Arc<RwLock<Peer>>, broker: Arc<RwLock<Broker>>, stream: Arc<TcpStream>) {
     task::spawn(async move {
+        info!("Start listening peer ({})", task::current().id());
+        let timeout_delay = broker.read().await.config.timeout_delay;
+        let out_time = Duration::from_secs(((timeout_delay as f32) * 1.5) as u64);
         let mut stream = BufReader::new(&*stream);
         loop {
             if let Ok(packet) = future::timeout(out_time, Packet::decode(&mut stream)).await {
-                info!("Receveid something");
-
                 if peer.read().await.closing() {
                     // We just drop
                     break;
@@ -32,7 +26,10 @@ pub fn listen_peer(
 
                 match packet {
                     Ok(packet) => {
-                        if let Err(e) = event_sender
+                        if let Err(e) = broker
+                            .write()
+                            .await
+                            .event_sender
                             .send(Event::Control(peer.clone(), packet))
                             .await
                         {
@@ -52,7 +49,6 @@ pub fn listen_peer(
                 }
             } else {
                 if !peer.read().await.closing() {
-                    log::debug!("Timeout");
                     let packet = ConnAck {
                         reason_code: ReasonCode::UnspecifiedError,
                         ..Default::default()
@@ -63,8 +59,15 @@ pub fn listen_peer(
             }
         }
 
-        if let Err(e) = event_sender.send(Event::EndPeer(peer.clone())).await {
+        if let Err(e) = broker
+            .write()
+            .await
+            .event_sender
+            .send(Event::EndPeer(peer.clone()))
+            .await
+        {
             error!("Cannot send EndPeer event: {:?}", e);
         }
+        info!("Stop listening peer ({})", task::current().id());
     });
 }

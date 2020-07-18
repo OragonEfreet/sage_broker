@@ -10,7 +10,7 @@ use log::error;
 pub async fn sender_loop(mut packets_receiver: PacketReceiver, stream: Arc<TcpStream>) {
     let mut stream = &*stream;
     while let Some(packet) = packets_receiver.next().await {
-        log::info!("Sending a packet");
+        log::debug!("Sending a packet");
         let mut buffer = Vec::new();
         if let Err(e) = packet.encode(&mut buffer).await {
             error!("Cannot encode packet: {:?}", e);

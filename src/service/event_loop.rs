@@ -1,6 +1,6 @@
 use crate::{
     service::{self, sender_loop},
-    BrokerConfig, Event, EventReceiver, EventSender, Peer, PeerState,
+    Event, EventReceiver, Peer, PeerState,
 };
 use async_std::{
     prelude::*,
@@ -8,7 +8,7 @@ use async_std::{
     task,
 };
 use futures::channel::mpsc;
-use log::{error, info};
+use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Connect, Packet, ReasonCode};
 
 async fn process_connect(_: Connect, peer: Arc<RwLock<Peer>>) {
@@ -28,19 +28,17 @@ async fn process_connect(_: Connect, peer: Arc<RwLock<Peer>>) {
     peer.send(out.into()).await;
 }
 
-pub async fn event_loop(
-    config: Arc<BrokerConfig>,
-    event_sender: EventSender,
-    mut event_receiver: EventReceiver,
-) {
+pub async fn event_loop(mut event_receiver: EventReceiver) {
+    info!("Start event loop ({})", task::current().id());
     while let Some(event) = event_receiver.next().await {
+        debug!("Event ({}): {}", task::current().id(), event);
         match event {
             // Ending a peer
-            Event::EndPeer(peer) => {
-                info!("End peer {}", peer.read().await.id());
+            Event::EndPeer(_) => {
+                // info!("End peer {}", peer.read().await.id());
             }
             // Creating a new peer
-            Event::NewPeer(stream) => {
+            Event::NewPeer(broker, stream) => {
                 match stream.peer_addr() {
                     Err(e) => error!("Cannot get peer addr: {:?}", e),
                     Ok(_) => {
@@ -55,16 +53,10 @@ pub async fn event_loop(
                         let sender_handle =
                             task::spawn(sender_loop(packet_receiver, stream.clone()));
                         let peer = Peer::new(packet_sender, sender_handle);
-                        info!("New peer: {}", peer.id());
                         let peer = Arc::new(RwLock::new(peer));
 
                         // Start the connection loop for this stream
-                        service::listen_peer(
-                            peer,
-                            config.timeout_delay,
-                            event_sender.clone(),
-                            stream,
-                        );
+                        service::listen_peer(peer, broker, stream);
                     }
                 }
             }
@@ -85,4 +77,5 @@ pub async fn event_loop(
             },
         }
     }
+    info!("Stop event loop {}", task::current().id());
 }

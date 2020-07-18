@@ -1,35 +1,28 @@
-use crate::{service, Broker, Event};
+use crate::{Broker, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,
+    sync::{Arc, RwLock},
     task::{self, JoinHandle},
 };
-use futures::{channel::mpsc, SinkExt};
+use futures::SinkExt;
 use log::{error, info};
 
 pub fn start(broker: Broker) -> JoinHandle<()> {
-    let (mut event_sender, event_receiver) = mpsc::unbounded();
-
-    task::spawn(service::event_loop(
-        broker.config.clone(),
-        event_sender.clone(),
-        event_receiver,
-    ));
-
     let addr = broker.config.addr.clone();
 
     task::spawn(async move {
-        if let Ok(addrs) = addr.to_socket_addrs().await {
-            info!(
-                "Listening to {}",
-                addrs
-                    .map(|addr| addr.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            );
+        let mut event_sender = broker.event_sender.clone();
+        let broker = Arc::new(RwLock::new(broker));
 
+        if let Ok(addrs) = addr.to_socket_addrs().await {
             // Listen to any connection
             if let Ok(listener) = TcpListener::bind(addr).await {
+                let addrs = addrs
+                    .map(|addr| addr.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                info!("Start listening to {} ({})", addrs, task::current().id());
                 let mut incoming = listener.incoming();
                 while let Some(stream) = incoming.next().await {
                     match stream {
@@ -38,8 +31,11 @@ pub fn start(broker: Broker) -> JoinHandle<()> {
                         }
                         Ok(stream) => {
                             if let Ok(peer_addr) = stream.peer_addr() {
-                                info!("Accepting from {}", peer_addr);
-                                if let Err(e) = event_sender.send(Event::NewPeer(stream)).await {
+                                info!("Incoming connection from {}", peer_addr);
+                                if let Err(e) = event_sender
+                                    .send(Event::NewPeer(broker.clone(), stream))
+                                    .await
+                                {
                                     error!("{:?}", e);
                                 }
                             } else {
@@ -48,6 +44,7 @@ pub fn start(broker: Broker) -> JoinHandle<()> {
                         }
                     }
                 }
+                info!("Stop listening to {} ({})", addrs, task::current().id());
             } else {
                 error!("Cannot listen socket");
             }
