@@ -1,6 +1,6 @@
 use crate::{
     service::{self, sender_loop},
-    Event, EventReceiver, Peer, PeerState,
+    Client, Event, EventReceiver, Peer, PeerState,
 };
 use async_std::{
     prelude::*,
@@ -52,7 +52,7 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
                         let (packet_sender, packet_receiver) = mpsc::unbounded();
                         let sender_handle =
                             task::spawn(sender_loop(packet_receiver, stream.clone()));
-                        let peer = Peer::new(packet_sender, sender_handle);
+                        let peer = Peer::new(Arc::new(Client::new()), packet_sender, sender_handle);
                         let peer = Arc::new(RwLock::new(peer));
 
                         // Start the connection loop for this stream

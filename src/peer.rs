@@ -1,31 +1,33 @@
-use crate::{PacketSender, PeerState};
-use async_std::task::JoinHandle;
+use crate::{Client, PacketSender, PeerState};
+use async_std::{sync::Arc, task::JoinHandle};
 use futures::SinkExt;
 use log::error;
-use nanoid::nanoid;
 use sage_mqtt::Packet;
 
 #[derive(Debug)]
 pub struct Peer {
-    client_id: String,
+    client: Arc<Client>,
     packet_sender: PacketSender,
     sender_handle: JoinHandle<()>,
     state: PeerState,
 }
 
 impl Peer {
-    pub fn new(packet_sender: PacketSender, sender_handle: JoinHandle<()>) -> Self {
-        let client_id = format!("sage_mqtt-{}", nanoid!());
+    pub fn new(
+        client: Arc<Client>,
+        packet_sender: PacketSender,
+        sender_handle: JoinHandle<()>,
+    ) -> Self {
         Peer {
-            client_id,
+            client,
             packet_sender,
             sender_handle,
             state: PeerState::New,
         }
     }
 
-    pub fn id(&self) -> &str {
-        &self.client_id
+    pub fn client(&self) -> &Arc<Client> {
+        &self.client
     }
 
     pub fn set_state(&mut self, state: PeerState) {
