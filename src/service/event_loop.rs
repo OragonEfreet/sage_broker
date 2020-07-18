@@ -8,10 +8,10 @@ use async_std::{
     task,
 };
 use futures::channel::mpsc;
-use log::{debug, error, info};
+use log::{error, info};
 use sage_mqtt::{ConnAck, Connect, Packet, ReasonCode};
 
-async fn process_connect(packet: Connect, peer: Arc<RwLock<Peer>>) {
+async fn process_connect(_: Connect, peer: Arc<RwLock<Peer>>) {
     let out = ConnAck::default();
     let mut peer = peer.write().await;
     peer.set_state(PeerState::Active);

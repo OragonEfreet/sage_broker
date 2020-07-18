@@ -17,7 +17,6 @@ pub fn listen_peer(
     mut event_sender: EventSender,
     stream: Arc<TcpStream>,
 ) {
-    let peer_addr = stream.peer_addr().unwrap();
     let out_time = Duration::from_secs(((timeout_delay as f32) * 1.5) as u64);
 
     task::spawn(async move {
@@ -67,6 +66,5 @@ pub fn listen_peer(
         if let Err(e) = event_sender.send(Event::EndPeer(peer.clone())).await {
             error!("Cannot send EndPeer event: {:?}", e);
         }
-
     });
 }
