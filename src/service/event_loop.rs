@@ -1,6 +1,6 @@
 use crate::{
     service::{self, sender_loop},
-    Broker, Event, EventReceiver, EventSender, Peer, PeerState,
+    BrokerConfig, Event, EventReceiver, EventSender, Peer, PeerState,
 };
 use async_std::{
     prelude::*,
@@ -29,7 +29,7 @@ async fn process_connect(packet: Connect, peer: Arc<RwLock<Peer>>) {
 }
 
 pub async fn event_loop(
-    config: Arc<Broker>,
+    config: Arc<BrokerConfig>,
     event_sender: EventSender,
     mut event_receiver: EventReceiver,
 ) {

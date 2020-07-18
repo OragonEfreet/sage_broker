@@ -1,4 +1,4 @@
-use crate::{service, Broker, Event};
+use crate::{service, BrokerConfig, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,
@@ -8,7 +8,7 @@ use async_std::{
 use futures::{channel::mpsc, SinkExt};
 use log::{error, info};
 
-pub fn start(config: Broker) -> JoinHandle<()> {
+pub fn start(config: BrokerConfig) -> JoinHandle<()> {
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let config = Arc::new(config);
 
