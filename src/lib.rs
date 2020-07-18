@@ -12,11 +12,9 @@ pub use broker::Broker;
 pub use broker_config::BrokerConfig;
 use event::Event;
 mod peer;
-mod peer_state;
 pub use client::Client;
 use futures::channel::mpsc;
 use peer::Peer;
-use peer_state::PeerState;
 use sage_mqtt::Packet;
 
 type EventSender = mpsc::UnboundedSender<Event>;

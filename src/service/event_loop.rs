@@ -49,6 +49,7 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
                     broker.connect(peer, packet).await;
                 }
                 _ => {
+                    error!("Unsupported packet");
                     let packet = ConnAck {
                         reason_code: ReasonCode::ImplementationSpecificError,
                         ..Default::default()

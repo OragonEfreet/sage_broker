@@ -2,7 +2,7 @@ use crate::{BrokerConfig, Client, Event, EventSender, Peer};
 use async_std::sync::{Arc, RwLock};
 use futures::SinkExt;
 use log::error;
-use sage_mqtt::Connect;
+use sage_mqtt::{ConnAck, Connect};
 
 pub struct Broker {
     pub config: RwLock<BrokerConfig>,
@@ -31,12 +31,13 @@ impl Broker {
     /// The creation / change of a Client instance.
     /// An existing client does not meant an MQTT connection is established.
     /// Connect/Ack handshake may be involved before the actuall session begins.
-    pub async fn connect(&self, peer: Arc<RwLock<Peer>>, _: Connect) -> Option<Arc<Client>> {
+    pub async fn connect(&self, peer: Arc<RwLock<Peer>>, _: Connect) {
         // Just create a new client for now
-        let client = Arc::new(Client::new(peer));
+        let client = Arc::new(Client::new(peer.clone()));
         self.clients.write().await.push(client.clone());
         // TODO information may be taken from the packet to customize the client
 
-        Some(client)
+        // Send an ok ConnAck packet to the client
+        peer.write().await.send(ConnAck::default().into()).await;
     }
 }
