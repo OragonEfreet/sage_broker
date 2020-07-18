@@ -7,7 +7,7 @@ use sage_mqtt::Packet;
 use std::fmt;
 
 pub enum Event {
-    NewPeer(Arc<RwLock<Broker>>, TcpStream),
+    NewPeer(Arc<Broker>, TcpStream),
     Control(Arc<RwLock<Peer>>, Packet),
     EndPeer(Arc<RwLock<Peer>>),
 }

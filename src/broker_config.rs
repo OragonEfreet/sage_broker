@@ -1,5 +1,5 @@
 use crate::{Broker, EventSender};
-use async_std::sync::Arc;
+use async_std::sync::RwLock;
 
 #[derive(Clone, Debug)]
 pub struct BrokerConfig {
@@ -26,7 +26,7 @@ impl BrokerConfig {
     /// Builds a broker from the current configuration
     pub fn build(&self, event_sender: EventSender) -> Broker {
         Broker {
-            config: Arc::new(self.clone()),
+            config: RwLock::new(self.clone()),
             event_sender,
         }
     }

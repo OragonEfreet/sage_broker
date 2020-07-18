@@ -9,11 +9,10 @@ use futures::SinkExt;
 use log::{error, info};
 
 pub fn start(broker: Broker) -> JoinHandle<()> {
-    let addr = broker.config.addr.clone();
-
     task::spawn(async move {
+        let addr = broker.config.read().await.addr.clone();
         let mut event_sender = broker.event_sender.clone();
-        let broker = Arc::new(RwLock::new(broker));
+        let broker = Arc::new(broker);
 
         if let Ok(addrs) = addr.to_socket_addrs().await {
             // Listen to any connection
