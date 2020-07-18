@@ -1,4 +1,4 @@
-use crate::PacketSender;
+use crate::{PacketSender, PeerState};
 use async_std::task::JoinHandle;
 use futures::SinkExt;
 use log::error;
@@ -10,7 +10,7 @@ pub struct Peer {
     client_id: String,
     packet_sender: PacketSender,
     sender_handle: JoinHandle<()>,
-    closing: bool,
+    state: PeerState,
 }
 
 impl Peer {
@@ -20,19 +20,27 @@ impl Peer {
             client_id,
             packet_sender,
             sender_handle,
-            closing: false,
+            state: PeerState::New,
         }
     }
 
+    pub fn id(&self) -> &str {
+        &self.client_id
+    }
+
+    pub fn set_state(&mut self, state: PeerState) {
+        self.state = state;
+    }
+
     pub fn closing(&self) -> bool {
-        self.closing
+        self.state == PeerState::Closed
     }
 
     pub async fn close(&mut self, packet: Option<Packet>) {
         if let Some(packet) = packet {
             self.send(packet).await;
         }
-        self.closing = true;
+        self.state = PeerState::Closed;
     }
 
     pub async fn send(&mut self, packet: Packet) {

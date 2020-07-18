@@ -1,3 +1,4 @@
+#[derive(Clone, Debug)]
 pub struct Broker {
     pub timeout_delay: u16,
     pub addr: String,

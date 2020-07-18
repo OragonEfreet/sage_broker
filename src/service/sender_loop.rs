@@ -2,6 +2,11 @@ use crate::PacketReceiver;
 use async_std::{net::TcpStream, prelude::*, sync::Arc};
 use log::error;
 
+/// This function loop-reads from the given `PacketReceiver` for any incoming
+/// `Packet`. Each of them is then encoded and sent to `stream`.
+/// Once all senders are dropped, the receiver is dropped as well and the loop
+/// is broken, ending the function.
+/// The sender is held in a `Peer` instance.
 pub async fn sender_loop(mut packets_receiver: PacketReceiver, stream: Arc<TcpStream>) {
     let mut stream = &*stream;
     while let Some(packet) = packets_receiver.next().await {

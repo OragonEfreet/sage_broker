@@ -3,7 +3,7 @@ use async_std::{
     future,
     io::BufReader,
     net::TcpStream,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
     task,
 };
 use futures::SinkExt;
@@ -12,15 +12,13 @@ use sage_mqtt::{ConnAck, Packet, ReasonCode};
 use std::time::Duration;
 
 pub fn listen_peer(
-    peer: Peer,
+    peer: Arc<RwLock<Peer>>,
     timeout_delay: u16,
     mut event_sender: EventSender,
     stream: Arc<TcpStream>,
 ) {
-    let peer = Arc::new(Mutex::new(peer));
-
     let peer_addr = stream.peer_addr().unwrap();
-    let out_time = Duration::from_secs(timeout_delay as u64);
+    let out_time = Duration::from_secs(((timeout_delay as f32) * 1.5) as u64);
 
     task::spawn(async move {
         let mut stream = BufReader::new(&*stream);
@@ -28,7 +26,7 @@ pub fn listen_peer(
             if let Ok(packet) = future::timeout(out_time, Packet::decode(&mut stream)).await {
                 info!("Receveid something");
 
-                if peer.lock().await.closing() {
+                if peer.read().await.closing() {
                     // We just drop
                     break;
                 }
@@ -49,18 +47,18 @@ pub fn listen_peer(
                             reason_code: e.into(),
                             ..Default::default()
                         };
-                        peer.lock().await.send(packet.into()).await;
+                        peer.write().await.send(packet.into()).await;
                         break;
                     }
                 }
             } else {
-                if !peer.lock().await.closing() {
+                if !peer.read().await.closing() {
                     log::debug!("Timeout");
                     let packet = ConnAck {
                         reason_code: ReasonCode::UnspecifiedError,
                         ..Default::default()
                     };
-                    peer.lock().await.send(packet.into()).await;
+                    peer.write().await.send(packet.into()).await;
                 }
                 break;
             }
@@ -69,6 +67,6 @@ pub fn listen_peer(
         if let Err(e) = event_sender.send(Event::EndPeer(peer.clone())).await {
             error!("Cannot send EndPeer event: {:?}", e);
         }
-        info!("Close {}", peer_addr);
+
     });
 }

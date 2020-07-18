@@ -3,7 +3,7 @@ use async_std::{
     net::TcpStream,
     task,
 };
-use sage_mqtt::Packet;
+use sage_mqtt::{Connect, Packet};
 use std::{thread, time::Duration};
 
 fn connect() -> TcpStream {
@@ -25,12 +25,15 @@ fn main() {
     task::block_on(async {
         // Send an invalid connect packet and wait for an immediate disconnection
         // from the server.
-        let packet = Packet::Connect(Default::default());
+        let packet = Packet::from(Connect {
+            authentication: Some(Default::default()),
+            ..Default::default()
+        });
         let mut buffer = Vec::new();
         packet.encode(&mut buffer).await.unwrap();
 
+        log::info!("Sending connect packet");
         while let Err(_) = stream.write(&buffer).await {}
-        log::error!("Pouet pouet rpouet");
 
         loop {
             let mut buf = vec![0u8; 1024];
