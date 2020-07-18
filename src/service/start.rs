@@ -2,16 +2,14 @@ use crate::{Broker, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,
-    sync::{Arc, RwLock},
+    sync::Arc,
     task::{self, JoinHandle},
 };
-use futures::SinkExt;
 use log::{error, info};
 
 pub fn start(broker: Broker) -> JoinHandle<()> {
     task::spawn(async move {
         let addr = broker.config.read().await.addr.clone();
-        let mut event_sender = broker.event_sender.clone();
         let broker = Arc::new(broker);
 
         if let Ok(addrs) = addr.to_socket_addrs().await {
@@ -31,12 +29,8 @@ pub fn start(broker: Broker) -> JoinHandle<()> {
                         Ok(stream) => {
                             if let Ok(peer_addr) = stream.peer_addr() {
                                 info!("Incoming connection from {}", peer_addr);
-                                if let Err(e) = event_sender
-                                    .send(Event::NewPeer(broker.clone(), stream))
-                                    .await
-                                {
-                                    error!("{:?}", e);
-                                }
+
+                                broker.send(Event::NewPeer(broker.clone(), stream)).await;
                             } else {
                                 error!("Cannot get peer address");
                             }

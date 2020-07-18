@@ -6,7 +6,6 @@ use async_std::{
     sync::{Arc, RwLock},
     task,
 };
-use futures::SinkExt;
 use log::{error, info};
 use sage_mqtt::{ConnAck, Packet, ReasonCode};
 use std::time::Duration;

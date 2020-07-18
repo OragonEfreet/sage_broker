@@ -27,7 +27,7 @@ impl BrokerConfig {
     pub fn build(&self, event_sender: EventSender) -> Broker {
         Broker {
             config: RwLock::new(self.clone()),
-            event_sender,
+            event_sender: RwLock::new(event_sender.clone()),
         }
     }
 }
