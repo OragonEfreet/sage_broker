@@ -1,3 +1,6 @@
+use crate::Broker;
+use async_std::sync::Arc;
+
 #[derive(Clone, Debug)]
 pub struct BrokerConfig {
     pub timeout_delay: u16,
@@ -18,5 +21,12 @@ impl BrokerConfig {
     pub fn with_connect_timeout_delay(mut self, delay: u16) -> Self {
         self.timeout_delay = delay;
         self
+    }
+
+    /// Builds a broker from the current configuration
+    pub fn build(&self) -> Broker {
+        Broker {
+            config: Arc::new(self.clone()),
+        }
     }
 }
