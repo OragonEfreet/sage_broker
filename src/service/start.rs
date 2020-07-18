@@ -1,24 +1,22 @@
-use crate::{service, BrokerConfig, Event};
+use crate::{service, Broker, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,
-    sync::Arc,
     task::{self, JoinHandle},
 };
 use futures::{channel::mpsc, SinkExt};
 use log::{error, info};
 
-pub fn start(config: BrokerConfig) -> JoinHandle<()> {
+pub fn start(broker: Broker) -> JoinHandle<()> {
     let (mut event_sender, event_receiver) = mpsc::unbounded();
-    let config = Arc::new(config);
 
     task::spawn(service::event_loop(
-        config.clone(),
+        broker.config.clone(),
         event_sender.clone(),
         event_receiver,
     ));
 
-    let addr = config.addr.clone();
+    let addr = broker.config.addr.clone();
 
     task::spawn(async move {
         if let Ok(addrs) = addr.to_socket_addrs().await {
