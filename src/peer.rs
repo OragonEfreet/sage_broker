@@ -6,27 +6,36 @@ use sage_mqtt::Packet;
 
 #[derive(Debug)]
 pub struct Peer {
-    client: Arc<Client>,
+    client: Option<Arc<Client>>,
     packet_sender: PacketSender,
     sender_handle: JoinHandle<()>,
     state: PeerState,
 }
 
 impl Peer {
-    pub fn new(
+    pub fn from_client(
         client: Arc<Client>,
         packet_sender: PacketSender,
         sender_handle: JoinHandle<()>,
     ) -> Self {
         Peer {
-            client,
+            client: Some(client),
             packet_sender,
             sender_handle,
             state: PeerState::New,
         }
     }
 
-    pub fn client(&self) -> &Arc<Client> {
+    pub fn new(packet_sender: PacketSender, sender_handle: JoinHandle<()>) -> Self {
+        Peer {
+            client: None,
+            packet_sender,
+            sender_handle,
+            state: PeerState::New,
+        }
+    }
+
+    pub fn client(&self) -> &Option<Arc<Client>> {
         &self.client
     }
 
