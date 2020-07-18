@@ -1,12 +1,13 @@
-use crate::Peer;
+use crate::{Peer, ClientStatus};
 use async_std::sync::{Arc, RwLock, Weak};
 use log::debug;
 use nanoid::nanoid;
 
 #[derive(Debug)]
 pub struct Client {
-    id: String,
-    peer: Weak<RwLock<Peer>>,
+    pub id: String,
+    pub peer: Weak<RwLock<Peer>>,
+    pub status: ClientStatus,
 }
 
 impl Client {
@@ -16,6 +17,7 @@ impl Client {
         Client {
             id,
             peer: Arc::downgrade(&peer),
+            status: ClientStatus::Connecting,
         }
     }
 }

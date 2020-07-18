@@ -1,4 +1,4 @@
-use crate::{BrokerConfig, Client, Event, EventSender, Peer};
+use crate::{BrokerConfig, Client, Event, EventSender, Peer, ClientStatus};
 use async_std::sync::{Arc, RwLock};
 use futures::SinkExt;
 use log::error;
@@ -38,6 +38,7 @@ impl Broker {
         // TODO information may be taken from the packet to customize the client
 
         // Send an ok ConnAck packet to the client
+        // client.status = ClientStatus::Ready;
         peer.write().await.send(ConnAck::default().into()).await;
     }
 }

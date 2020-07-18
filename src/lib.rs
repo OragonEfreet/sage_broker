@@ -6,13 +6,15 @@
 mod broker;
 mod broker_config;
 mod client;
+mod client_status;
 mod event;
+mod peer;
 pub mod service;
 pub use broker::Broker;
 pub use broker_config::BrokerConfig;
-use event::Event;
-mod peer;
 pub use client::Client;
+pub use client_status::ClientStatus;
+use event::Event;
 use futures::channel::mpsc;
 use peer::Peer;
 use sage_mqtt::Packet;
