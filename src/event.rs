@@ -8,7 +8,7 @@ use std::fmt;
 
 pub enum Event {
     NewPeer(Arc<Broker>, TcpStream),
-    Control(Arc<RwLock<Peer>>, Packet),
+    Control(Arc<Broker>, Arc<RwLock<Peer>>, Packet),
     EndPeer(Arc<RwLock<Peer>>),
 }
 
@@ -16,7 +16,7 @@ impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Event::NewPeer(_, _) => write!(f, "NewPeer"),
-            Event::Control(_, _) => write!(f, "Control"),
+            Event::Control(_, _, _) => write!(f, "Control"),
             Event::EndPeer(_) => write!(f, "EndPeer"),
         }
     }

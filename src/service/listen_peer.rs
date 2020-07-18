@@ -24,7 +24,11 @@ pub fn listen_peer(peer: Arc<RwLock<Peer>>, broker: Arc<Broker>, stream: Arc<Tcp
                 }
 
                 match packet {
-                    Ok(packet) => broker.send(Event::Control(peer.clone(), packet)).await,
+                    Ok(packet) => {
+                        broker
+                            .send(Event::Control(broker.clone(), peer.clone(), packet))
+                            .await
+                    }
                     Err(e) => {
                         error!("Error: {:?}", e);
                         let packet = ConnAck {

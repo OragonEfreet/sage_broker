@@ -61,10 +61,9 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
                 }
             }
             // Dispatch to the corresponding function
-            Event::Control(peer, packet) => match packet {
+            Event::Control(broker, peer, packet) => match packet {
                 Packet::Connect(packet) => {
-                    process_connect(packet, peer).await;
-                    // println!("Should process connect");
+                    // let _ = broker.connect(packet);
                 }
                 _ => {
                     let packet = ConnAck {
