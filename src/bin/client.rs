@@ -6,7 +6,7 @@ use std::net::TcpStream;
 fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("127.0.0.1:6788")?;
 
-    for _ in 0..2 {
+    for _ in 0..1 {
         let mut buffer = Vec::new();
         let packet = Packet::Connect(Default::default());
 

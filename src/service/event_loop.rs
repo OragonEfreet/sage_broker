@@ -1,6 +1,6 @@
 use crate::{
     service::{self, sender_loop},
-    Event, EventReceiver, Peer, PeerState,
+    Event, EventReceiver, Peer,
 };
 use async_std::{
     prelude::*,
@@ -9,24 +9,7 @@ use async_std::{
 };
 use futures::channel::mpsc;
 use log::{debug, error, info};
-use sage_mqtt::{ConnAck, Connect, Packet, ReasonCode};
-
-async fn process_connect(_: Connect, peer: Arc<RwLock<Peer>>) {
-    let out = ConnAck::default();
-    let mut peer = peer.write().await;
-    peer.set_state(PeerState::Active);
-
-    // let with_prob_info = packet.request_problem_information;
-
-    // if packet.authentication.is_some() {
-    //     out.reason_code = ReasonCode::BadAuthenticationMethod;
-    //     if with_prob_info {
-    //         out.reason_string = "Enhanced authentication not available".into();
-    //     }
-    // }
-
-    peer.send(out.into()).await;
-}
+use sage_mqtt::{ConnAck, Packet, ReasonCode};
 
 pub async fn event_loop(mut event_receiver: EventReceiver) {
     info!("Start event loop ({})", task::current().id());
@@ -63,7 +46,7 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
             // Dispatch to the corresponding function
             Event::Control(broker, peer, packet) => match packet {
                 Packet::Connect(packet) => {
-                    // let _ = broker.connect(packet);
+                    broker.connect(peer, packet).await;
                 }
                 _ => {
                     let packet = ConnAck {

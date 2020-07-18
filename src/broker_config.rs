@@ -1,5 +1,4 @@
 use crate::{Broker, EventSender};
-use async_std::sync::RwLock;
 
 #[derive(Clone, Debug)]
 pub struct BrokerConfig {
