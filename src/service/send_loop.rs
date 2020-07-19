@@ -7,7 +7,7 @@ use log::error;
 /// Once all senders are dropped, the receiver is dropped as well and the loop
 /// is broken, ending the function.
 /// The sender is held in a `Peer` instance.
-pub async fn sender_loop(mut packets_receiver: PacketReceiver, stream: Arc<TcpStream>) {
+pub async fn send_loop(mut packets_receiver: PacketReceiver, stream: Arc<TcpStream>) {
     let mut stream = &*stream;
     while let Some(packet) = packets_receiver.next().await {
         log::debug!("Sending a {}", packet);

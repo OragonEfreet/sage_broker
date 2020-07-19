@@ -1,5 +1,5 @@
 use crate::{
-    service::{self, sender_loop},
+    service::{self, send_loop},
     Broker, Event, EventReceiver, EventSender, Peer,
 };
 use async_std::{
@@ -53,7 +53,7 @@ async fn treat_packet(peer: Arc<RwLock<Peer>>, packet: Packet) {
 }
 
 // Creation of a new peer involves a new `Peer` instance along with starting
-// an async loops for receiving (`listen_peer`) and sending (`sending_loop`)
+// an async loops for receiving (`listen_loop`) and sending (`sending_loop`)
 // packets.
 async fn create_peer(event_sender: EventSender, config: &Broker, stream: TcpStream) {
     match stream.peer_addr() {
@@ -67,12 +67,17 @@ async fn create_peer(event_sender: EventSender, config: &Broker, stream: TcpStre
             let stream = Arc::new(stream);
 
             let (packet_sender, packet_receiver) = mpsc::unbounded();
-            let sender_handle = task::spawn(sender_loop(packet_receiver, stream.clone()));
+            let sender_handle = task::spawn(send_loop(packet_receiver, stream.clone()));
             let peer = Peer::new(packet_sender, sender_handle);
             let peer = Arc::new(RwLock::new(peer));
 
             // Start the connection loop for this stream
-            service::listen_peer(peer, event_sender, config.timeout_delay, stream);
+            task::spawn(service::listen_loop(
+                peer,
+                event_sender,
+                config.timeout_delay,
+                stream,
+            ));
         }
     };
 }
