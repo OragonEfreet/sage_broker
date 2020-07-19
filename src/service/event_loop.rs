@@ -10,7 +10,7 @@ use async_std::{
 };
 use futures::channel::mpsc;
 use log::{debug, error, info};
-use sage_mqtt::{ConnAck, Packet, ReasonCode};
+use sage_mqtt::{ConnAck, Connect, Packet, ReasonCode};
 
 struct LoopData {
     event_sender: EventSender,
@@ -23,72 +23,92 @@ struct LoopData {
 pub async fn event_loop(
     config: Arc<Broker>,
     event_sender: EventSender,
-    mut event_receiver: EventReceiver,
+    event_receiver: EventReceiver,
 ) {
-    let loop_data = LoopData {
+    LoopData {
         event_sender,
         config,
-    };
-
-    info!("Start event loop ({})", task::current().id());
-    while let Some(event) = event_receiver.next().await {
-        debug!("Event ({}): {}", task::current().id(), event);
-        match event {
-            Event::EndPeer(_) => debug!("End peer"),
-            Event::NewPeer(stream) => create_peer(&loop_data, stream).await,
-            Event::Control(peer, packet) => treat_packet(&loop_data, peer, packet).await,
-        }
     }
-    info!("Stop event loop {}", task::current().id());
+    .start(event_receiver)
+    .await;
 }
 
-// Upon receiving `packet` from a given `peer`, the function must dispatch to
-// the corresponding function according to the packet type.
-async fn treat_packet(data: &LoopData, peer: Arc<RwLock<Peer>>, packet: Packet) {
-    debug!("{:?}", packet);
-    match packet {
-        Packet::Connect(packet) => {
-            let packet = data.config.acknowledge_connect(packet);
-            peer.write().await.send(packet.into()).await;
+impl LoopData {
+    async fn start(&self, mut event_receiver: EventReceiver) {
+        info!("Start event loop ({})", task::current().id());
+        while let Some(event) = event_receiver.next().await {
+            debug!("Event ({}): {}", task::current().id(), event);
+            match event {
+                Event::EndPeer(_) => debug!("End peer"),
+                Event::NewPeer(stream) => self.create_peer(stream).await,
+                Event::Control(peer, packet) => {
+                    match self.treat(packet).await {
+                        (false, Some(packet)) => peer.write().await.send(packet).await,
+                        (true, maybe_packet) => peer.write().await.close(maybe_packet).await,
+                        _ => (),
+                    };
+                }
+            }
         }
-        _ => {
-            error!("Unsupported packet");
-            let packet = ConnAck {
+        info!("Stop event loop {}", task::current().id());
+    }
+
+    async fn treat(&self, packet: Packet) -> (bool, Option<Packet>) {
+        debug!("{:?}", packet);
+        match packet {
+            Packet::Connect(packet) => self.treat_connect(packet).await,
+            _ => treat_unsupported(),
+        }
+    }
+
+    async fn treat_connect(&self, connect: Connect) -> (bool, Option<Packet>) {
+        let packet = self.config.acknowledge_connect(connect);
+        // source.write().await.send(packet.into()).await;
+        (false, Some(packet.into()))
+    }
+
+    // Creation of a new peer involves a new `Peer` instance along with starting
+    // an async loops for receiving (`listen_loop`) and sending (`sending_loop`)
+    // packets.
+    async fn create_peer(&self, stream: TcpStream) {
+        match stream.peer_addr() {
+            Err(e) => error!("Cannot get peer addr: {:?}", e),
+            Ok(_) => {
+                // New peer (no client for now)
+                // Create the packet send/receive channel
+                // Launch the sender loop
+                // Create peer
+                // Launch the listen peer loop
+                let stream = Arc::new(stream);
+
+                let (packet_sender, packet_receiver) = mpsc::unbounded();
+                let sender_handle = task::spawn(send_loop(packet_receiver, stream.clone()));
+                let peer = Peer::new(packet_sender, sender_handle);
+                let peer = Arc::new(RwLock::new(peer));
+
+                // Start the connection loop for this stream
+                task::spawn(service::listen_loop(
+                    peer,
+                    self.event_sender.clone(),
+                    self.config.keep_alive,
+                    stream,
+                ));
+            }
+        };
+    }
+}
+
+// Dev function that will actually be deleted once all packets are supported
+fn treat_unsupported() -> (bool, Option<Packet>) {
+    error!("Unsupported packet");
+    (
+        true,
+        Some(
+            ConnAck {
                 reason_code: ReasonCode::ImplementationSpecificError,
                 ..Default::default()
             }
-            .into();
-            peer.write().await.close(Some(packet)).await;
-        }
-    };
-}
-
-// Creation of a new peer involves a new `Peer` instance along with starting
-// an async loops for receiving (`listen_loop`) and sending (`sending_loop`)
-// packets.
-async fn create_peer(data: &LoopData, stream: TcpStream) {
-    match stream.peer_addr() {
-        Err(e) => error!("Cannot get peer addr: {:?}", e),
-        Ok(_) => {
-            // New peer (no client for now)
-            // Create the packet send/receive channel
-            // Launch the sender loop
-            // Create peer
-            // Launch the listen peer loop
-            let stream = Arc::new(stream);
-
-            let (packet_sender, packet_receiver) = mpsc::unbounded();
-            let sender_handle = task::spawn(send_loop(packet_receiver, stream.clone()));
-            let peer = Peer::new(packet_sender, sender_handle);
-            let peer = Arc::new(RwLock::new(peer));
-
-            // Start the connection loop for this stream
-            task::spawn(service::listen_loop(
-                peer,
-                data.event_sender.clone(),
-                data.config.keep_alive,
-                stream,
-            ));
-        }
-    };
+            .into(),
+        ),
+    )
 }
