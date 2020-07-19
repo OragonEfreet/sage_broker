@@ -5,13 +5,11 @@
 
 mod broker;
 mod client;
-mod client_status;
 mod event;
 mod peer;
 pub mod service;
 pub use broker::Broker;
 pub use client::Client;
-pub use client_status::ClientStatus;
 use event::Event;
 use futures::channel::mpsc;
 use peer::Peer;

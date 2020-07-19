@@ -42,7 +42,7 @@ impl LoopData {
                 Event::EndPeer(_) => debug!("End peer"),
                 Event::NewPeer(stream) => self.create_peer(stream).await,
                 Event::Control(peer, packet) => {
-                    match self.treat(packet).await {
+                    match self.treat(packet, &peer).await {
                         (false, Some(packet)) => peer.write().await.send(packet).await,
                         (true, maybe_packet) => peer.write().await.close(maybe_packet).await,
                         _ => (),
@@ -53,18 +53,28 @@ impl LoopData {
         info!("Stop event loop {}", task::current().id());
     }
 
-    async fn treat(&self, packet: Packet) -> (bool, Option<Packet>) {
+    async fn treat(&self, packet: Packet, source: &Arc<RwLock<Peer>>) -> (bool, Option<Packet>) {
         debug!("{:?}", packet);
         match packet {
-            Packet::Connect(packet) => self.treat_connect(packet).await,
+            Packet::Connect(packet) => self.treat_connect(packet, &source).await,
             _ => treat_unsupported(),
         }
     }
 
-    async fn treat_connect(&self, connect: Connect) -> (bool, Option<Packet>) {
-        let packet = self.config.acknowledge_connect(connect);
-        // source.write().await.send(packet.into()).await;
-        (false, Some(packet.into()))
+    async fn treat_connect(
+        &self,
+        connect: Connect,
+        _: &Arc<RwLock<Peer>>,
+    ) -> (bool, Option<Packet>) {
+        let connack = self.config.acknowledge_connect(connect);
+
+        // Here we should attach a client to the peer
+        // That means we need access to the peer.
+
+        (
+            connack.reason_code != ReasonCode::Success,
+            Some(connack.into()),
+        )
     }
 
     // Creation of a new peer involves a new `Peer` instance along with starting
