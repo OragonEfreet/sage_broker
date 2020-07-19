@@ -1,4 +1,4 @@
-use crate::{Peer, ClientStatus};
+use crate::{ClientStatus, Peer};
 use async_std::sync::{Arc, RwLock, Weak};
 use log::debug;
 use nanoid::nanoid;

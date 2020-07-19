@@ -1,16 +1,27 @@
-use crate::{Broker, Event};
+use crate::{service, Broker, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,
     sync::Arc,
     task::{self, JoinHandle},
 };
+use futures::channel::mpsc;
+use futures::SinkExt;
 use log::{error, info};
 
-pub fn start(broker: Broker) -> JoinHandle<()> {
+pub fn start(config: Broker) -> JoinHandle<()> {
+    let (mut event_sender, event_receiver) = mpsc::unbounded();
+    let config = Arc::new(config);
+
+    // TODO The envent loop should be waitable
+    task::spawn(service::event_loop(
+        config.clone(),
+        event_sender.clone(),
+        event_receiver,
+    ));
+
     task::spawn(async move {
-        let addr = broker.config.read().await.addr.clone();
-        let broker = Arc::new(broker);
+        let addr = config.addr.clone();
 
         if let Ok(addrs) = addr.to_socket_addrs().await {
             // Listen to any connection
@@ -30,7 +41,9 @@ pub fn start(broker: Broker) -> JoinHandle<()> {
                             if let Ok(peer_addr) = stream.peer_addr() {
                                 info!("Incoming connection from {}", peer_addr);
 
-                                broker.send(Event::NewPeer(broker.clone(), stream)).await;
+                                if let Err(e) = event_sender.send(Event::NewPeer(stream)).await {
+                                    error!("Cannot send event: {:?}", e);
+                                }
                             } else {
                                 error!("Cannot get peer address");
                             }

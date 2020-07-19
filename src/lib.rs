@@ -4,14 +4,12 @@
 #![allow(clippy::large_enum_variant)]
 
 mod broker;
-mod broker_config;
 mod client;
 mod client_status;
 mod event;
 mod peer;
 pub mod service;
 pub use broker::Broker;
-pub use broker_config::BrokerConfig;
 pub use client::Client;
 pub use client_status::ClientStatus;
 use event::Event;

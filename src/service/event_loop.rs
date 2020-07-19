@@ -1,6 +1,6 @@
 use crate::{
     service::{self, sender_loop},
-    Event, EventReceiver, Peer,
+    Broker, Event, EventReceiver, EventSender, Peer,
 };
 use async_std::{
     prelude::*,
@@ -11,7 +11,12 @@ use futures::channel::mpsc;
 use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Packet, ReasonCode};
 
-pub async fn event_loop(mut event_receiver: EventReceiver) {
+// An event loop is made for each started broker
+pub async fn event_loop(
+    config: Arc<Broker>,
+    event_sender: EventSender,
+    mut event_receiver: EventReceiver,
+) {
     info!("Start event loop ({})", task::current().id());
     while let Some(event) = event_receiver.next().await {
         debug!("Event ({}): {}", task::current().id(), event);
@@ -21,7 +26,7 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
                 // info!("End peer {}", peer.read().await.id());
             }
             // Creating a new peer
-            Event::NewPeer(broker, stream) => {
+            Event::NewPeer(stream) => {
                 match stream.peer_addr() {
                     Err(e) => error!("Cannot get peer addr: {:?}", e),
                     Ok(_) => {
@@ -39,14 +44,20 @@ pub async fn event_loop(mut event_receiver: EventReceiver) {
                         let peer = Arc::new(RwLock::new(peer));
 
                         // Start the connection loop for this stream
-                        service::listen_peer(peer, broker, stream);
+                        service::listen_peer(
+                            peer,
+                            event_sender.clone(),
+                            config.timeout_delay,
+                            stream,
+                        );
                     }
                 }
             }
             // Dispatch to the corresponding function
-            Event::Control(broker, peer, packet) => match packet {
-                Packet::Connect(packet) => {
-                    broker.connect(peer, packet).await;
+            Event::Control(peer, packet) => match packet {
+                Packet::Connect(_) => {
+                    // broker.connect(peer, packet).await;
+                    // TODO
                 }
                 _ => {
                     error!("Unsupported packet");
