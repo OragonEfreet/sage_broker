@@ -26,7 +26,7 @@ pub async fn event_loop(
         match event {
             Event::EndPeer(_) => debug!("End peer"),
             Event::NewPeer(stream) => create_peer(event_sender.clone(), &config, stream).await,
-            Event::Control(peer, packet) => treat_packet(peer, packet).await,
+            Event::Control(peer, packet) => treat_packet(config.clone(), peer, packet).await,
         }
     }
     info!("Stop event loop {}", task::current().id());
@@ -34,11 +34,12 @@ pub async fn event_loop(
 
 // Upon receiving `packet` from a given `peer`, the function must dispatch to
 // the corresponding function according to the packet type.
-async fn treat_packet(peer: Arc<RwLock<Peer>>, packet: Packet) {
+async fn treat_packet(config: Arc<Broker>, peer: Arc<RwLock<Peer>>, packet: Packet) {
+    debug!("{:?}", packet);
     match packet {
-        Packet::Connect(_) => {
-            // broker.connect(peer, packet).await;
-            // TODO
+        Packet::Connect(packet) => {
+            let packet = config.acknowledge_connect(packet);
+            peer.write().await.send(packet.into()).await;
         }
         _ => {
             error!("Unsupported packet");
@@ -75,7 +76,7 @@ async fn create_peer(event_sender: EventSender, config: &Broker, stream: TcpStre
             task::spawn(service::listen_loop(
                 peer,
                 event_sender,
-                config.timeout_delay,
+                config.keep_alive,
                 stream,
             ));
         }

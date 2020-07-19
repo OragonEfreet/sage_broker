@@ -12,7 +12,10 @@ mod setup;
 const TIMEOUT_DELAY: u16 = 3;
 
 fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
-    let config = Broker::new("localhost:6788").with_connect_timeout_delay(TIMEOUT_DELAY);
+    let config = Broker {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    };
     setup::prepare_connection(config)
 }
 
@@ -99,7 +102,10 @@ fn mqtt_3_1_4_1() {
 fn mqtt_3_1_4_2() {
     // Create a set of pairs with a server and an unsupported connect packet.
     // Each one will be tested against an expected ConnAck > 0x80
-    let config = Broker::new("localhost:6788");
+    let config = Broker {
+        addr: "localhost:6788".into(),
+        ..Default::default()
+    };
     let test_pairs = vec![(
         config.clone(),
         Connect {
