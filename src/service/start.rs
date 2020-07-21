@@ -2,7 +2,7 @@ use crate::{service, Broker, Event};
 use async_std::{
     net::{TcpListener, ToSocketAddrs},
     prelude::*,
-    sync::Arc,
+    sync::{Arc, RwLock},
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
@@ -11,7 +11,7 @@ use log::{error, info};
 
 pub fn start(config: Broker) -> JoinHandle<()> {
     let (mut event_sender, event_receiver) = mpsc::unbounded();
-    let config = Arc::new(config);
+    let config = Arc::new(RwLock::new(config));
 
     // TODO The envent loop should be waitable
     task::spawn(service::event_loop(
@@ -21,7 +21,7 @@ pub fn start(config: Broker) -> JoinHandle<()> {
     ));
 
     task::spawn(async move {
-        let addr = config.addr.clone();
+        let addr = config.read().await.addr.clone();
 
         if let Ok(addrs) = addr.to_socket_addrs().await {
             // Listen to any connection

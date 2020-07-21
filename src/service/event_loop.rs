@@ -14,14 +14,14 @@ use sage_mqtt::{ConnAck, Connect, Packet, ReasonCode};
 
 struct LoopData {
     event_sender: EventSender,
-    config: Arc<Broker>,
+    config: Arc<RwLock<Broker>>,
 }
 
 // An event loop is made for each started broker
 // The event_loop is responsible for maintaining most data related to
 // the broker, such as the list of clients.
 pub async fn event_loop(
-    config: Arc<Broker>,
+    config: Arc<RwLock<Broker>>,
     event_sender: EventSender,
     event_receiver: EventReceiver,
 ) {
@@ -66,7 +66,7 @@ impl LoopData {
         connect: Connect,
         _: &Arc<RwLock<Peer>>,
     ) -> (bool, Option<Packet>) {
-        let connack = self.config.acknowledge_connect(connect);
+        let connack = self.config.read().await.acknowledge_connect(connect);
 
         // Here we should attach a client to the peer
         // That means we need access to the peer.
@@ -100,7 +100,7 @@ impl LoopData {
                 task::spawn(service::listen_loop(
                     peer,
                     self.event_sender.clone(),
-                    self.config.keep_alive,
+                    self.config.read().await.keep_alive,
                     stream,
                 ));
             }
