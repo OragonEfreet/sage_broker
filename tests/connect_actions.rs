@@ -106,15 +106,25 @@ fn mqtt_3_1_4_2() {
         addr: "localhost:6788".into(),
         ..Default::default()
     };
-    let test_pairs = vec![(
-        config.clone(),
-        Connect {
-            authentication: Some(Default::default()),
-            ..Default::default()
-        },
-    )];
+    let test_data = vec![
+        (
+            config.clone(),
+            Connect {
+                authentication: Some(Default::default()),
+                ..Default::default()
+            },
+        ),
+        (
+            config.clone(),
+            Connect {
+                user_name: Some("Thanos".into()),
+                ..Default::default()
+            },
+        ),
+        // (config.clone(), Connect::default()), <-- This one must fail
+    ];
 
-    for (config, connect) in test_pairs {
+    for (config, connect) in test_data {
         let (server, mut stream) = setup::prepare_connection(config);
 
         task::block_on(async {
@@ -123,7 +133,6 @@ fn mqtt_3_1_4_2() {
             let packet = Packet::from(connect);
             let mut buffer = Vec::new();
             packet.encode(&mut buffer).await.unwrap();
-            buffer[0] |= 0b1111; // Invalidate the packet
 
             while let Err(_) = stream.write(&buffer).await {}
 
@@ -143,6 +152,7 @@ fn mqtt_3_1_4_2() {
                 Ok(_) => {
                     let mut buf = Cursor::new(buf);
                     let packet = Packet::decode(&mut buf).await.unwrap();
+                    println!("{:?}", packet);
                     if let Packet::ConnAck(packet) = packet {
                         assert!(packet.reason_code as u16 >= 0x80);
                     } else {

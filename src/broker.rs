@@ -37,7 +37,6 @@ impl Broker {
     /// Generates an acknowledgement packet given the `connect` packet and the
     /// current configuration.
     pub fn acknowledge_connect(&self, connect: Connect) -> ConnAck {
-        let mut reason_code = ReasonCode::Success;
         // If the server forces the value, we use it.
         // Otherwise we take the value from the connect request or
         // the server one if absent.
@@ -88,12 +87,17 @@ impl Broker {
         };
 
         // Enhanced authentication is not supported for now
-        if connect.authentication.is_some() {
-            reason_code = ReasonCode::BadAuthenticationMethod;
-        }
+        let (reason_code, reason_string) = {
+            if connect.authentication.is_some() || connect.user_name.is_some() {
+                (
+                    ReasonCode::BadAuthenticationMethod,
+                    Some("Enhanced anthentication non supported".into()),
+                )
+            } else {
+                (ReasonCode::Success, None)
+            }
+        };
 
-        // Hardcoded values (for several reasons)
-        let reason_string = None;
         let wildcard_subscription_available = false;
         let subscription_identifiers_available = false;
         let shared_subscription_available = false;
