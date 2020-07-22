@@ -113,6 +113,7 @@ fn mqtt_3_1_4_2() {
                 authentication: Some(Default::default()),
                 ..Default::default()
             },
+            ReasonCode::BadAuthenticationMethod,
         ),
         (
             config.clone(),
@@ -120,11 +121,12 @@ fn mqtt_3_1_4_2() {
                 user_name: Some("Thanos".into()),
                 ..Default::default()
             },
+            ReasonCode::BadAuthenticationMethod,
         ),
         // (config.clone(), Connect::default()), <-- This one must fail
     ];
 
-    for (config, connect) in test_data {
+    for (config, connect, reason_code) in test_data {
         let (server, mut stream) = setup::prepare_connection(config);
 
         task::block_on(async {
@@ -152,9 +154,8 @@ fn mqtt_3_1_4_2() {
                 Ok(_) => {
                     let mut buf = Cursor::new(buf);
                     let packet = Packet::decode(&mut buf).await.unwrap();
-                    println!("{:?}", packet);
                     if let Packet::ConnAck(packet) = packet {
-                        assert!(packet.reason_code as u16 >= 0x80);
+                        assert_eq!(packet.reason_code, reason_code);
                     } else {
                         panic!("Packet should be ConnAck");
                     }
