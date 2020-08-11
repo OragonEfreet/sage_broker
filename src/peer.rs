@@ -43,11 +43,13 @@ impl Peer {
         self.closing
     }
 
-    pub async fn close(&mut self, packet: Option<Packet>) {
-        if let Some(packet) = packet {
-            self.send(packet).await;
-        }
+    pub async fn close(&mut self) {
         self.closing = true;
+    }
+
+    pub async fn send_close(&mut self, packet: Packet) {
+        self.send(packet).await;
+        self.close().await;
     }
 
     pub async fn send(&mut self, packet: Packet) {

@@ -11,8 +11,7 @@ const TIMEOUT_DELAY: u16 = 3;
 fn main() {
     task::block_on(async {
         let mut stream = TcpStream::connect("localhost:6788").await.unwrap();
-        // Send an invalid connect packet and wait for an immediate disconnection
-        // from the server.
+
         let packet = Packet::Connect(Default::default());
         let mut buffer = Vec::new();
         packet.encode(&mut buffer).await.unwrap();

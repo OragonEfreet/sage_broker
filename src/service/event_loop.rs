@@ -1,6 +1,6 @@
 use crate::{
     service::{self, send_loop},
-    Broker, Event, EventReceiver, EventSender, Peer,
+    Broker, Client, Event, EventReceiver, EventSender, Peer,
 };
 use async_std::{
     net::TcpStream,
@@ -10,11 +10,12 @@ use async_std::{
 };
 use futures::channel::mpsc;
 use log::{debug, error, info};
-use sage_mqtt::{ConnAck, Connect, Packet, ReasonCode};
+use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, ReasonCode};
 
 struct LoopData {
     event_sender: EventSender,
     config: Arc<RwLock<Broker>>,
+    clients: RwLock<Vec<Arc<Client>>>,
 }
 
 // An event loop is made for each started broker
@@ -28,6 +29,7 @@ pub async fn event_loop(
     LoopData {
         event_sender,
         config,
+        clients: Default::default(),
     }
     .start(event_receiver)
     .await;
@@ -44,7 +46,8 @@ impl LoopData {
                 Event::Control(peer, packet) => {
                     match self.treat(packet, &peer).await {
                         (false, Some(packet)) => peer.write().await.send(packet).await,
-                        (true, maybe_packet) => peer.write().await.close(maybe_packet).await,
+                        (true, None) => peer.write().await.close().await,
+                        (true, Some(packet)) => peer.write().await.send_close(packet).await,
                         _ => (),
                     };
                 }
@@ -64,9 +67,34 @@ impl LoopData {
     async fn treat_connect(
         &self,
         connect: Connect,
-        _: &Arc<RwLock<Peer>>,
+        peer: &Arc<RwLock<Peer>>,
     ) -> (bool, Option<Packet>) {
+        let client_id = connect.client_id.clone();
         let connack = self.config.read().await.acknowledge_connect(connect);
+
+        // The actual client id
+        let client_id = connack.assigned_client_id.clone().or(client_id).unwrap();
+
+        let client = {
+            let mut clients = self.clients.write().await;
+
+            if let Some(index) = clients.iter().position(|c| c.id == client_id) {
+                let client = clients.swap_remove(index);
+                if let Some(peer) = client.peer.upgrade() {
+                    let packet = Disconnect {
+                        reason_code: ReasonCode::SessionTakenOver,
+                        ..Default::default()
+                    };
+                    peer.write().await.send_close(packet.into()).await;
+                }
+            }
+
+            let client = Arc::new(Client::new(&client_id, peer.clone()));
+            clients.push(client.clone());
+            client
+        };
+
+        debug!("New client: {}", client.id);
 
         // Here we should attach a client to the peer
         // That means we need access to the peer.
