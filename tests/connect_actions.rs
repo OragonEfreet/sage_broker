@@ -25,7 +25,6 @@ fn prepare_connection() -> (JoinHandle<()>, TcpStream) {
 /// > the Server SHOULD close the Network Connection.
 #[test]
 fn connect_timeout() {
-    pretty_env_logger::init();
     let (_, mut stream) = prepare_connection();
 
     task::block_on(async {
@@ -262,5 +261,5 @@ async fn mqtt_3_1_4_3() {
 
     // End server
     println!("End server");
-   // task::block_on(server.cancel());
+    // task::block_on(server.cancel());
 }
