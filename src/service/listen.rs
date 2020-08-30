@@ -11,11 +11,7 @@ pub async fn listen(listener: TcpListener, config: Broker) {
     let config = Arc::new(RwLock::new(config));
 
     // TODO This task should be waited in listen_tcp
-    task::spawn(service::event_loop(
-        config.clone(),
-        event_sender.clone(),
-        event_receiver,
-    ));
+    task::spawn(service::event_loop(config.clone(), event_receiver));
 
     service::listen_tcp(listener, event_sender).await;
 }

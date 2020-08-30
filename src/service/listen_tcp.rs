@@ -20,7 +20,10 @@ pub async fn listen_tcp(listener: TcpListener, mut event_sender: EventSender) {
                 if let Ok(peer_addr) = stream.peer_addr() {
                     info!("Incoming connection from {}", peer_addr);
 
-                    if let Err(e) = event_sender.send(Event::NewPeer(stream)).await {
+                    if let Err(e) = event_sender
+                        .send(Event::NewPeer(stream, event_sender.clone()))
+                        .await
+                    {
                         error!("Cannot send event: {:?}", e);
                     }
                 } else {

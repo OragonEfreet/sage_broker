@@ -10,7 +10,6 @@ use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, ReasonCode};
 
 struct LoopData {
-    event_sender: EventSender,
     config: Arc<RwLock<Broker>>,
     clients: RwLock<Vec<Arc<Client>>>,
 }
@@ -18,13 +17,8 @@ struct LoopData {
 // An event loop is made for each started broker
 // The event_loop is responsible for maintaining most data related to
 // the broker, such as the list of clients.
-pub async fn event_loop(
-    config: Arc<RwLock<Broker>>,
-    event_sender: EventSender,
-    event_receiver: EventReceiver,
-) {
+pub async fn event_loop(config: Arc<RwLock<Broker>>, event_receiver: EventReceiver) {
     LoopData {
-        event_sender,
         config,
         clients: Default::default(),
     }
@@ -39,7 +33,7 @@ impl LoopData {
             debug!("Event ({}): {}", task::current().id(), event);
             match event {
                 Event::EndPeer(_) => debug!("End peer"),
-                Event::NewPeer(stream) => self.create_peer(stream).await,
+                Event::NewPeer(stream, sender) => self.create_peer(stream, sender).await,
                 Event::Control(peer, packet) => {
                     match self.treat(packet, &peer).await {
                         (false, Some(packet)) => peer.write().await.send(packet).await,
@@ -105,7 +99,7 @@ impl LoopData {
     // Creation of a new peer involves a new `Peer` instance along with starting
     // an async loops for receiving (`listen_loop`) and sending (`sending_loop`)
     // packets.
-    async fn create_peer(&self, stream: TcpStream) {
+    async fn create_peer(&self, stream: TcpStream, sender: EventSender) {
         match stream.peer_addr() {
             Err(e) => error!("Cannot get peer addr: {:?}", e),
             Ok(_) => {
@@ -125,7 +119,7 @@ impl LoopData {
                 // Start the connection loop for this stream
                 task::spawn(service::listen_loop(
                     peer,
-                    self.event_sender.clone(),
+                    sender,
                     self.config.read().await.keep_alive,
                     stream,
                 ));
