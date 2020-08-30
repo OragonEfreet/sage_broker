@@ -4,7 +4,7 @@ use std::cmp::min;
 
 #[derive(Clone, Debug)]
 pub struct Broker {
-    pub addr: String,
+    // pub addr: String,
     pub session_expiry_interval: Option<u32>,
     pub force_session_expiry_interval: bool,
     pub receive_maximum: u16,
@@ -19,7 +19,7 @@ pub struct Broker {
 impl Default for Broker {
     fn default() -> Self {
         Broker {
-            addr: "localhost:6788".into(),
+            // addr: "localhost:6788".into(),
             keep_alive: defaults::DEFAULT_KEEP_ALIVE,
             session_expiry_interval: defaults::DEFAULT_SESSION_EXPIRY_INTERVAL,
             force_session_expiry_interval: false,

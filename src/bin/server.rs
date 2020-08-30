@@ -1,11 +1,14 @@
-use async_std::task;
 use sage_broker::{service, Broker};
 
-fn main() {
+#[async_std::main]
+async fn main() {
     pretty_env_logger::init();
-    let server = service::start(Broker {
-        keep_alive: 5,
-        ..Default::default()
-    });
-    task::block_on(server);
+
+    if let Some(listener) = service::bind("localhost:6788").await {
+        let config = Broker {
+            keep_alive: 5,
+            ..Default::default()
+        };
+        service::listen(listener, config).await;
+    }
 }

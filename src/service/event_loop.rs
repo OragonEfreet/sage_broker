@@ -1,7 +1,4 @@
-use crate::{
-    service::{self, send_loop},
-    Broker, Client, Event, EventReceiver, EventSender, Peer,
-};
+use crate::{service, Broker, Client, Event, EventReceiver, EventSender, Peer};
 use async_std::{
     net::TcpStream,
     prelude::*,
@@ -120,7 +117,8 @@ impl LoopData {
                 let stream = Arc::new(stream);
 
                 let (packet_sender, packet_receiver) = mpsc::unbounded();
-                let sender_handle = task::spawn(send_loop(packet_receiver, stream.clone()));
+                let sender_handle =
+                    task::spawn(service::send_loop(packet_receiver, stream.clone()));
                 let peer = Peer::new(packet_sender, sender_handle);
                 let peer = Arc::new(RwLock::new(peer));
 

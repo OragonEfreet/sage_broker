@@ -1,22 +1,25 @@
 use async_std::{
-    net::TcpStream,
+    net::{SocketAddr, TcpStream},
     task::{self, JoinHandle},
 };
 use sage_broker::{service, Broker};
-use std::{thread, time::Duration};
+use std::time::Duration;
 
-pub fn prepare_connection(config: Broker) -> (JoinHandle<()>, TcpStream) {
-    let handle = service::start(config);
+pub async fn setup(config: Broker, addr: &str) -> Option<(JoinHandle<()>, TcpStream, SocketAddr)> {
+    let listener = service::bind(addr).await.unwrap();
+    let local_addr = listener.local_addr().unwrap();
+    println!("{:?}", local_addr);
+    let handle = task::spawn(service::listen(listener, config));
 
     // Makes 5 connexion attemps, every 1 second until a connexion is made, or
     // panic
     for _ in 0u8..5u8 {
-        if let Ok(stream) = task::block_on(TcpStream::connect("localhost:6788")) {
-            return (handle, stream);
+        if let Ok(stream) = TcpStream::connect(&addr).await {
+            return Some((handle, stream, local_addr));
         }
 
-        thread::sleep(Duration::from_secs(1));
+        task::sleep(Duration::from_secs(1)).await;
     }
 
-    panic!("Cannot establish connection");
+    None
 }
