@@ -13,5 +13,5 @@ pub async fn listen(listener: TcpListener, config: Broker) {
     // TODO This task should be waited in listen_tcp
     task::spawn(service::event_loop(config.clone(), event_receiver));
 
-    service::listen_tcp(listener, event_sender).await;
+    service::listen_tcp(listener, event_sender, config).await;
 }

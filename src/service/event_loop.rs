@@ -1,11 +1,9 @@
-use crate::{service, Broker, Client, Event, EventReceiver, EventSender, Peer};
+use crate::{Broker, Client, Event, EventReceiver, Peer};
 use async_std::{
-    net::TcpStream,
     prelude::*,
     sync::{Arc, RwLock},
     task,
 };
-use futures::channel::mpsc;
 use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, ReasonCode};
 
@@ -33,7 +31,6 @@ impl LoopData {
             debug!("Event ({}): {}", task::current().id(), event);
             match event {
                 Event::EndPeer(_) => debug!("End peer"),
-                Event::NewPeer(stream, sender) => self.create_peer(stream, sender).await,
                 Event::Control(peer, packet) => {
                     match self.treat(packet, &peer).await {
                         (false, Some(packet)) => peer.write().await.send(packet).await,
@@ -94,37 +91,6 @@ impl LoopData {
             connack.reason_code != ReasonCode::Success,
             Some(connack.into()),
         )
-    }
-
-    // Creation of a new peer involves a new `Peer` instance along with starting
-    // an async loops for receiving (`listen_loop`) and sending (`sending_loop`)
-    // packets.
-    async fn create_peer(&self, stream: TcpStream, sender: EventSender) {
-        match stream.peer_addr() {
-            Err(e) => error!("Cannot get peer addr: {:?}", e),
-            Ok(_) => {
-                // New peer (no client for now)
-                // Create the packet send/receive channel
-                // Launch the sender loop
-                // Create peer
-                // Launch the listen peer loop
-                let stream = Arc::new(stream);
-
-                let (packet_sender, packet_receiver) = mpsc::unbounded();
-                let sender_handle =
-                    task::spawn(service::send_loop(packet_receiver, stream.clone()));
-                let peer = Peer::new(packet_sender, sender_handle);
-                let peer = Arc::new(RwLock::new(peer));
-
-                // Start the connection loop for this stream
-                task::spawn(service::listen_loop(
-                    peer,
-                    sender,
-                    self.config.read().await.keep_alive,
-                    stream,
-                ));
-            }
-        };
     }
 }
 
