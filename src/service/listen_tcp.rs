@@ -1,4 +1,4 @@
-use crate::{service, Broker, EventSender, Peer};
+use crate::{service, Broker, ControlSender, Peer};
 use async_std::{
     net::{TcpListener, TcpStream},
     prelude::*,
@@ -10,7 +10,7 @@ use log::{error, info};
 
 pub async fn listen_tcp(
     listener: TcpListener,
-    event_sender: EventSender,
+    control_sender: ControlSender,
     config: Arc<RwLock<Broker>>,
 ) {
     // Listen to any connection
@@ -23,7 +23,7 @@ pub async fn listen_tcp(
     while let Some(stream) = incoming.next().await {
         match stream {
             Err(e) => error!("Cannot accept Tcp stream: {}", e.to_string()),
-            Ok(stream) => create_peer(stream, event_sender.clone(), config.clone()).await,
+            Ok(stream) => create_peer(stream, control_sender.clone(), config.clone()).await,
         }
     }
     info!(
@@ -33,7 +33,7 @@ pub async fn listen_tcp(
     );
 }
 
-async fn create_peer(stream: TcpStream, sender: EventSender, config: Arc<RwLock<Broker>>) {
+async fn create_peer(stream: TcpStream, sender: ControlSender, config: Arc<RwLock<Broker>>) {
     match stream.peer_addr() {
         Err(e) => error!("Cannot get peer addr: {:?}", e),
         Ok(peer_addr) => {
@@ -50,7 +50,7 @@ async fn create_peer(stream: TcpStream, sender: EventSender, config: Arc<RwLock<
             let peer = Peer::new(packet_sender, sender_handle);
             let peer = Arc::new(RwLock::new(peer));
 
-            task::spawn(service::listen_loop(
+            task::spawn(service::listen_peer(
                 peer,
                 sender,
                 config.read().await.keep_alive,

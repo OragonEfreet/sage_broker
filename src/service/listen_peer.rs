@@ -1,4 +1,4 @@
-use crate::{Event, EventSender, Peer};
+use crate::{ControlSender, Peer};
 use async_std::{
     future,
     io::BufReader,
@@ -11,9 +11,9 @@ use log::{error, info};
 use sage_mqtt::{ConnAck, Disconnect, Packet, ReasonCode};
 use std::time::Duration;
 
-pub async fn listen_loop(
+pub async fn listen_peer(
     peer: Arc<RwLock<Peer>>,
-    mut event_sender: EventSender,
+    mut control_sender: ControlSender,
     timeout_delay: u16,
     stream: Arc<TcpStream>,
 ) {
@@ -32,13 +32,10 @@ pub async fn listen_loop(
             }
 
             match packet {
-                // If the result is a packet, we create a packet event
+                // If the result is a packet, we create a packet control
                 Ok(packet) => {
-                    if let Err(e) = event_sender
-                        .send(Event::Control(peer.clone(), packet))
-                        .await
-                    {
-                        error!("Cannot send event: {:?}", e);
+                    if let Err(e) = control_sender.send((peer.clone(), packet).into()).await {
+                        error!("Cannot send control: {:?}", e);
                     }
                 }
                 // If it's an error (usually ProtocolError o MalformedPacket),
@@ -65,10 +62,6 @@ pub async fn listen_loop(
             }
             break;
         }
-    }
-
-    if let Err(e) = event_sender.send(Event::EndPeer(peer.clone())).await {
-        error!("Cannot send event: {:?}", e);
     }
 
     info!("Stop listening peer ({})", task::current().id());

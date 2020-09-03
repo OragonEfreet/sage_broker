@@ -4,6 +4,11 @@ use async_std::{
 };
 use log::{error, info};
 
+/// Utility function that opens a Tcp connection for listening, returning some
+/// `TcpListener` in case of success, `None` otherwise.
+/// The function does not perform anything special apart from openning the
+/// connexion, meaning you can provide your own instance of `TcpListener` to
+/// `listen`.
 pub async fn bind(addr: &str) -> Option<TcpListener> {
     let addr = String::from(addr);
 

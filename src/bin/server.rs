@@ -9,6 +9,6 @@ async fn main() {
             keep_alive: 5,
             ..Default::default()
         };
-        service::listen(listener, config).await;
+        service::start(listener, config).await;
     }
 }

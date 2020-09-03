@@ -9,7 +9,7 @@ pub async fn setup(config: Broker, addr: &str) -> Option<(JoinHandle<()>, TcpStr
     let listener = service::bind(addr).await.unwrap();
     let local_addr = listener.local_addr().unwrap();
     println!("{:?}", local_addr);
-    let handle = task::spawn(service::listen(listener, config));
+    let handle = task::spawn(service::start(listener, config));
 
     // Makes 5 connexion attemps, every 1 second until a connexion is made, or
     // panic

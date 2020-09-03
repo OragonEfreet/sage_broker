@@ -1,4 +1,4 @@
-use crate::{Broker, Client, Event, EventReceiver, Peer};
+use crate::{Broker, Client, Control, ControlReceiver, Peer};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -12,36 +12,37 @@ struct LoopData {
     clients: RwLock<Vec<Arc<Client>>>,
 }
 
-// An event loop is made for each started broker
-// The event_loop is responsible for maintaining most data related to
-// the broker, such as the list of clients.
-pub async fn event_loop(config: Arc<RwLock<Broker>>, event_receiver: EventReceiver) {
+/// The control loop is reponsible from receiving and treating any control
+/// packet. I thus represent the actual instance of a running broker.
+/// The loop holds and manages the list of clients, dispatching messages from
+/// client to client.
+/// The loop automatically ends when all control sender channels are dropped.
+/// These are held by `listen_loop` (one per peer) and the `listen_tcp`
+/// tasks. Meaning when all peers are dropped and port listenning is stopped
+/// The control loop ends.
+pub async fn control_loop(config: Arc<RwLock<Broker>>, control_receiver: ControlReceiver) {
     LoopData {
         config,
         clients: Default::default(),
     }
-    .start(event_receiver)
+    .start(control_receiver)
     .await;
 }
 
 impl LoopData {
-    async fn start(&self, mut event_receiver: EventReceiver) {
-        info!("Start event loop ({})", task::current().id());
-        while let Some(event) = event_receiver.next().await {
-            debug!("Event ({}): {}", task::current().id(), event);
-            match event {
-                Event::EndPeer(_) => debug!("End peer"),
-                Event::Control(peer, packet) => {
-                    match self.treat(packet, &peer).await {
-                        (false, Some(packet)) => peer.write().await.send(packet).await,
-                        (true, None) => peer.write().await.close().await,
-                        (true, Some(packet)) => peer.write().await.send_close(packet).await,
-                        _ => (),
-                    };
-                }
-            }
+    async fn start(&self, mut control_receiver: ControlReceiver) {
+        info!("Start control loop ({})", task::current().id());
+        while let Some(control) = control_receiver.next().await {
+            debug!("Control ({}): {}", task::current().id(), control);
+            let Control(peer, packet) = control;
+            match self.treat(packet, &peer).await {
+                (false, Some(packet)) => peer.write().await.send(packet).await,
+                (true, None) => peer.write().await.close().await,
+                (true, Some(packet)) => peer.write().await.send_close(packet).await,
+                _ => (),
+            };
         }
-        info!("Stop event loop {}", task::current().id());
+        info!("Stop control loop {}", task::current().id());
     }
 
     async fn treat(&self, packet: Packet, source: &Arc<RwLock<Peer>>) -> (bool, Option<Packet>) {
