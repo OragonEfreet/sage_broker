@@ -1,7 +1,7 @@
 //! The broker service is made of a set of background async tasks.
 //!
 //! To start a service, you must spawn them or run the utility functions.
-//! Either way will require the creation of a `Broker` to personnalise the
+//! Either way will require the creation of a `BrokerSettings` to personnalise the
 //! service.
 //!
 //! To run a service, call `start` on a bound `TcpListener`.

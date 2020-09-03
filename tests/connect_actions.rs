@@ -3,7 +3,7 @@ use async_std::{
     net::TcpStream,
     task,
 };
-use sage_broker::Broker;
+use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::{Duration, Instant};
 
@@ -18,7 +18,7 @@ const TIMEOUT_DELAY: u16 = 3;
 #[async_std::test]
 async fn connect_timeout() {
     let (_, mut stream, _) = utils::setup(
-        Broker {
+        BrokerSettings {
             keep_alive: TIMEOUT_DELAY,
             ..Default::default()
         },
@@ -100,12 +100,12 @@ async fn mqtt_3_1_4_1() {
 async fn mqtt_3_1_4_2() {
     // Create a set of pairs with a server and an unsupported connect packet.
     // Each one will be tested against an expected ConnAck > 0x80
-    let config = Broker {
+    let settings = BrokerSettings {
         ..Default::default()
     };
     let test_data = vec![
         (
-            config.clone(),
+            settings.clone(),
             Connect {
                 authentication: Some(Default::default()),
                 ..Default::default()
@@ -113,18 +113,18 @@ async fn mqtt_3_1_4_2() {
             ReasonCode::BadAuthenticationMethod,
         ),
         (
-            config.clone(),
+            settings.clone(),
             Connect {
                 user_name: Some("Thanos".into()),
                 ..Default::default()
             },
             ReasonCode::BadAuthenticationMethod,
         ),
-        // (config.clone(), Connect::default()), <-- This one must fail
+        // (settings.clone(), Connect::default()), <-- This one must fail
     ];
 
-    for (config, connect, reason_code) in test_data {
-        let (_, mut stream, _) = utils::setup(config, "localhost:6789").await.unwrap();
+    for (settings, connect, reason_code) in test_data {
+        let (_, mut stream, _) = utils::setup(settings, "localhost:6789").await.unwrap();
 
         // Send an invalid connect packet and wait for an immediate disconnection
         // from the server.
@@ -168,11 +168,11 @@ async fn mqtt_3_1_4_2() {
 async fn mqtt_3_1_4_3() {
     // Start server and first client
     let (_, mut stream, local_addr) = {
-        let config = Broker {
+        let settings = BrokerSettings {
             keep_alive: 100,
             ..Default::default()
         };
-        utils::setup(config, "localhost:6788").await.unwrap()
+        utils::setup(settings, "localhost:6788").await.unwrap()
     };
 
     ////////////////////////////////////////////////////////////////////////////

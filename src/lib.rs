@@ -4,6 +4,7 @@
 #![allow(clippy::large_enum_variant)]
 
 mod broker;
+mod broker_settings;
 mod client;
 mod control;
 mod peer;
@@ -12,6 +13,7 @@ mod peer;
 pub mod service;
 
 pub use broker::Broker;
+pub use broker_settings::BrokerSettings;
 pub use client::Client;
 use control::Control;
 use futures::channel::mpsc;

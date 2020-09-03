@@ -8,11 +8,7 @@ use async_std::{
 use futures::channel::mpsc;
 use log::{error, info};
 
-pub async fn listen_tcp(
-    listener: TcpListener,
-    control_sender: ControlSender,
-    config: Arc<RwLock<Broker>>,
-) {
+pub async fn listen_tcp(listener: TcpListener, control_sender: ControlSender, broker: Arc<Broker>) {
     // Listen to any connection
     info!(
         "Start listening to {:?} ({})",
@@ -23,7 +19,7 @@ pub async fn listen_tcp(
     while let Some(stream) = incoming.next().await {
         match stream {
             Err(e) => error!("Cannot accept Tcp stream: {}", e.to_string()),
-            Ok(stream) => create_peer(stream, control_sender.clone(), config.clone()).await,
+            Ok(stream) => create_peer(stream, control_sender.clone(), &broker).await,
         }
     }
     info!(
@@ -33,7 +29,7 @@ pub async fn listen_tcp(
     );
 }
 
-async fn create_peer(stream: TcpStream, sender: ControlSender, config: Arc<RwLock<Broker>>) {
+async fn create_peer(stream: TcpStream, sender: ControlSender, broker: &Arc<Broker>) {
     match stream.peer_addr() {
         Err(e) => error!("Cannot get peer addr: {:?}", e),
         Ok(peer_addr) => {
@@ -53,7 +49,7 @@ async fn create_peer(stream: TcpStream, sender: ControlSender, config: Arc<RwLoc
             task::spawn(service::listen_peer(
                 peer,
                 sender,
-                config.read().await.keep_alive,
+                broker.settings.read().await.keep_alive,
                 stream,
             ));
         }
