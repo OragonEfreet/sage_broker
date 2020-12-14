@@ -2,7 +2,6 @@ use crate::{Broker, Client, Control, ControlReceiver, Peer};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
-    task,
 };
 use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, ReasonCode};
@@ -22,28 +21,46 @@ enum TreatAction {
 /// These are held by `listen_loop` (one per peer) and the `listen_tcp`
 /// tasks. Meaning when all peers are dropped and port listenning is stopped
 /// The control loop ends.
-pub async fn control_loop(broker: Arc<Broker>, mut control_receiver: ControlReceiver) {
-    info!("Start control loop ({})", task::current().id());
-    while let Some(control) = control_receiver.next().await {
-        debug!("Control ({}): {}", task::current().id(), control);
+pub async fn control_loop(broker: Arc<Broker>, mut from_control_channel: ControlReceiver) {
+    info!("Start control loop");
+    while let Some(control) = from_control_channel.next().await {
         let Control(peer, packet) = control;
+        debug!(
+            "<<< [{}]: {:?}",
+            if let Some(client) = peer.read().await.client() {
+                &client.id
+            } else {
+                ""
+            },
+            packet
+        );
+
         match treat(&broker, packet, &peer).await {
             TreatAction::Respond(packet) => peer.write().await.send(packet).await,
             TreatAction::RespondAndDisconnect(packet) => {
                 peer.write().await.send_close(packet).await
             }
-            // TreatAction::Disconnect => peer.write().await.close().await,
-            // _ => (),
         };
     }
-    info!("Stop control loop {}", task::current().id());
+    info!("Stop control loop");
 }
 
 async fn treat(broker: &Arc<Broker>, packet: Packet, source: &Arc<RwLock<Peer>>) -> TreatAction {
-    debug!("{:?}", packet);
-    match packet {
-        Packet::Connect(packet) => treat_connect(&broker, packet, &source).await,
-        _ => treat_unsupported(),
+    // If the broker is stopping, let's notify here the client with a
+    // DISCONNECT and close the peer
+    if broker.is_shutting_down().await {
+        TreatAction::RespondAndDisconnect(
+            Disconnect {
+                reason_code: ReasonCode::ServerShuttingDown,
+                ..Default::default()
+            }
+            .into(),
+        )
+    } else {
+        match packet {
+            Packet::Connect(packet) => treat_connect(&broker, packet, &source).await,
+            _ => treat_unsupported(),
+        }
     }
 }
 
@@ -77,10 +94,11 @@ async fn treat_connect(
         client
     };
 
-    debug!("New client: {}", client.id);
+    info!("New client: {}", client.id);
 
     // Here we should attach a client to the peer
     // That means we need access to the peer.
+    // TODO: We do that, no?
 
     if connack.reason_code == ReasonCode::Success {
         TreatAction::Respond(connack.into())

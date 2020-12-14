@@ -33,7 +33,7 @@ fn main() {
         packet.encode(&mut buffer).await.unwrap();
 
         log::info!("Sending connect packet");
-        while let Err(_) = stream.write(&buffer).await {}
+        while stream.write(&buffer).await.is_err() {}
 
         loop {
             let mut buf = vec![0u8; 1024];
