@@ -22,26 +22,26 @@ pub async fn listen_peer(
         "N/A".into()
     };
 
-    // If the keep alive is 0, out_time is set to server defaults but
-    // a timeout won't disconnect the peer.
-    // If the keep alive is > 0 out_time is 1.5 times it, and a timeout will
+    info!("Start listening from '{}'", addr,);
+    // If the keep alive is 0, timeout_delay is set to 3 but the timeout error
+    // won't disconnect the peer.
+    // If the keep alive is > 0 timeout_delay is 1.5 times it, and a timeout will
     // disconnect
-    let timeout_delay = broker.settings.read().await.keep_alive;
-    let (disconnect_on_timeout, out_time) = if timeout_delay == 0 {
-        (false, Duration::from_secs(10_u64))
-    } else {
-        (
-            true,
-            Duration::from_secs(((timeout_delay as f32) * 1.5) as u64),
-        )
+    let (disconnect_on_timeout, timeout_delay) = {
+        let timeout_delay = broker.settings.read().await.keep_alive;
+
+        if timeout_delay == 0 {
+            info!("Time out is disabled");
+            (false, Duration::from_secs(3_u64))
+        } else {
+            let timeout_delay = Duration::from_secs(((timeout_delay as f32) * 1.5) as u64);
+            info!("Time out is {:?}", timeout_delay);
+            (true, timeout_delay)
+        }
     };
 
-    info!("Start listening from '{}'", addr,);
-    info!("Time out is {:?}", out_time);
     let mut stream = BufReader::new(&*stream);
     while !peer.read().await.closing() {
-        debug!(".");
-
         // If the server is closing, we close the peer too and break
         if broker.is_shutting_down().await {
             let packet = Disconnect {
@@ -54,7 +54,7 @@ pub async fn listen_peer(
 
         // future::timeout returns a Result<T, TimeoutError>
         // T is a Result<Packet, Error>
-        if let Ok(decoded) = future::timeout(out_time, Packet::decode(&mut stream)).await {
+        if let Ok(decoded) = future::timeout(timeout_delay, Packet::decode(&mut stream)).await {
             // At this point, decoded may be an `Err(Io(Kind(UnexpectedEof)))`
             // But it's only considered an error if the peer was not is close state.
 
