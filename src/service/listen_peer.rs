@@ -6,9 +6,9 @@ use async_std::{
     sync::{Arc, RwLock},
 };
 use futures::SinkExt;
-use log::{error, info};
+use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Disconnect, Packet, ReasonCode};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub async fn listen_peer(
     peer: Arc<RwLock<Peer>>,
@@ -27,21 +27,25 @@ pub async fn listen_peer(
     // won't disconnect the peer.
     // If the keep alive is > 0 timeout_delay is 1.5 times it, and a timeout will
     // disconnect
-    let (disconnect_on_timeout, timeout_delay) = {
-        let timeout_delay = broker.settings.read().await.keep_alive;
+    let mut keep_alive = {
+        let keep_alive = broker.settings.read().await.keep_alive;
 
-        if timeout_delay == 0 {
+        if keep_alive == 0 {
             info!("Time out is disabled");
-            (false, Duration::from_secs(3_u64))
+            None
         } else {
-            let timeout_delay = Duration::from_secs(((timeout_delay as f32) * 1.5) as u64);
-            info!("Time out is {:?}", timeout_delay);
-            (true, timeout_delay)
+            let max = Duration::from_secs(((keep_alive as f32) * 1.5) as u64);
+            info!("Time out is {:?} (1.5*{:?})", max, keep_alive);
+            Some((max, Instant::now()))
         }
     };
+    let timeout_delay = Duration::from_secs(1_u64);
 
     let mut stream = BufReader::new(&*stream);
     while !peer.read().await.closing() {
+        if let Some((max, last)) = keep_alive {
+            debug!("KeepAlive: {:?}/{:?}", last.elapsed(), max);
+        }
         // If the server is closing, we close the peer too and break
         if broker.is_shutting_down().await {
             let packet = Disconnect {
@@ -82,8 +86,14 @@ pub async fn listen_peer(
                     peer.write().await.send_close(packet.into()).await;
                 }
             }
-        } else {
-            if disconnect_on_timeout {
+
+            // Reset the keep alive timer
+            if let Some((max, _)) = keep_alive {
+                keep_alive = Some((max, Instant::now()));
+            };
+        } else if let Some((max, last)) = keep_alive {
+            if last.elapsed() > max {
+                // If keep_alive is activated
                 info!("Peer timout, send Disconnect");
                 // If the peer is not in a closing state we can send a Disconnect
                 // packet with KeepAliveTimeout reason code

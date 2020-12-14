@@ -100,6 +100,7 @@ async fn mqtt_3_1_4_2() {
     // Create a set of pairs with a server and an unsupported connect packet.
     // Each one will be tested against an expected ConnAck > 0x80
     let settings = BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     };
     // Vector of (input,output) tests.
@@ -124,7 +125,6 @@ async fn mqtt_3_1_4_2() {
             },
             ReasonCode::BadAuthenticationMethod,
         ),
-        // (settings.clone(), Connect::default()), <-- This one must fail
     ];
 
     for (settings, connect, reason_code) in test_collection {
@@ -136,7 +136,6 @@ async fn mqtt_3_1_4_2() {
         let packet = Packet::from(connect);
         let mut buffer = Vec::new();
         packet.encode(&mut buffer).await.unwrap();
-
         while let Err(_) = stream.write(&buffer).await {}
 
         // Wait for a response from the server within the next seconds
