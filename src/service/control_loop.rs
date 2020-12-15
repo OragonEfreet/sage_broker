@@ -70,15 +70,27 @@ async fn treat_connect(
     connect: Connect,
     peer: &Arc<RwLock<Peer>>,
 ) -> TreatAction {
+    // First, we prepare an equivalent connack using broker policy
+    // and infer the actual client_id requested for this client
     let client_id = connect.client_id.clone();
     let connack = broker.settings.read().await.acknowledge_connect(connect);
-
-    // The actual client id
     let client_id = connack.assigned_client_id.clone().or(client_id).unwrap();
 
-    let client = {
+    // Whatever the connack is, it falls into two cases: Success or not.
+    // TODO not always. once extended auth is available, we may send
+    // something else than connack
+
+    // Here we should attach a client to the peer
+    // That means we need access to the peer.
+    // TODO: We do that, no?
+
+    if connack.reason_code == ReasonCode::Success {
+        // Client creation
         let mut clients = broker.clients.write().await;
 
+        // We search, in any other aleady existing clients, if the name is
+        // already taken. If so, we remove the client from our collection
+        // and disconnect the peer if any.
         if let Some(index) = clients.iter().position(|c| c.id == client_id) {
             let client = clients.swap_remove(index);
             if let Some(peer) = client.peer.upgrade() {
@@ -90,18 +102,11 @@ async fn treat_connect(
             }
         }
 
+        // Now we create the new client and push it into the collection.
         let client = Arc::new(Client::new(&client_id, peer.clone()));
         clients.push(client.clone());
-        client
-    };
+        info!("New client: {}", client.id);
 
-    info!("New client: {}", client.id);
-
-    // Here we should attach a client to the peer
-    // That means we need access to the peer.
-    // TODO: We do that, no?
-
-    if connack.reason_code == ReasonCode::Success {
         TreatAction::Respond(connack.into())
     } else {
         TreatAction::RespondAndDisconnect(connack.into())

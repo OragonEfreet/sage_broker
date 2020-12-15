@@ -200,3 +200,8 @@ async fn mqtt_3_1_4_3() {
 
     server.stop().await;
 }
+
+/// The Server MUST perform the processing of Clean Start that is described in
+/// section 3.1.2.4
+#[async_std::test]
+async fn mqtt_3_1_4_4() {}
