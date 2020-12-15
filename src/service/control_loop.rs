@@ -1,4 +1,4 @@
-use crate::{Broker, Client, Control, ControlReceiver, Peer};
+use crate::{Broker, Control, ControlReceiver, Peer, Session};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -27,8 +27,8 @@ pub async fn control_loop(broker: Arc<Broker>, mut from_control_channel: Control
         let Control(peer, packet) = control;
         debug!(
             "<<< [{}]: {:?}",
-            if let Some(client) = peer.read().await.client() {
-                &client.id
+            if let Some(session) = peer.read().await.session() {
+                &session.id
             } else {
                 ""
             },
@@ -85,7 +85,7 @@ async fn treat_connect(
     // TODO: We do that, no?
 
     if connack.reason_code == ReasonCode::Success {
-        // Client creation
+        // Session creation
         let mut clients = broker.clients.write().await;
 
         // We search, in any other aleady existing clients, if the name is
@@ -103,7 +103,7 @@ async fn treat_connect(
         }
 
         // Now we create the new client and push it into the collection.
-        let client = Arc::new(Client::new(&client_id, peer.clone()));
+        let client = Arc::new(Session::new(&client_id, peer.clone()));
         clients.push(client.clone());
         info!("New client: {}", client.id);
 

@@ -5,7 +5,7 @@ use async_std::sync::{Arc, RwLock, Weak};
 /// If the client is connected, `peer` is used to retrieve its information and
 /// send him packets.
 #[derive(Debug)]
-pub struct Client {
+pub struct Session {
     /// The client identifier assigned upon connection.
     pub id: String,
 
@@ -16,10 +16,10 @@ pub struct Client {
     pub peer: Weak<RwLock<Peer>>,
 }
 
-impl Client {
+impl Session {
     /// Builds a new client by giving its id and a shared peer.
     pub fn new(id: &str, peer: Arc<RwLock<Peer>>) -> Self {
-        Client {
+        Session {
             id: id.into(),
             peer: Arc::downgrade(&peer),
         }

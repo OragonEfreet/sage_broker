@@ -1,4 +1,4 @@
-use crate::{Client, PacketSender};
+use crate::{PacketSender, Session};
 use async_std::sync::Arc;
 use futures::SinkExt;
 use log::error;
@@ -6,15 +6,15 @@ use sage_mqtt::Packet;
 
 #[derive(Debug)]
 pub struct Peer {
-    client: Option<Arc<Client>>,
+    session: Option<Arc<Session>>,
     packet_sender: PacketSender,
     closing: bool,
 }
 
 impl Peer {
-    pub fn from_client(client: Arc<Client>, packet_sender: PacketSender) -> Self {
+    pub fn from_session(session: Arc<Session>, packet_sender: PacketSender) -> Self {
         Peer {
-            client: Some(client),
+            session: Some(session),
             packet_sender,
             closing: false,
         }
@@ -22,14 +22,14 @@ impl Peer {
 
     pub fn new(packet_sender: PacketSender) -> Self {
         Peer {
-            client: None,
+            session: None,
             packet_sender,
             closing: false,
         }
     }
 
-    pub fn client(&self) -> &Option<Arc<Client>> {
-        &self.client
+    pub fn session(&self) -> &Option<Arc<Session>> {
+        &self.session
     }
 
     pub fn closing(&self) -> bool {

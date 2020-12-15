@@ -1,4 +1,4 @@
-use crate::{BrokerSettings, Client};
+use crate::{BrokerSettings, Session};
 use async_std::{
     future::Future,
     sync::{Arc, RwLock},
@@ -12,7 +12,7 @@ pub struct Broker {
     /// The broker configuration
     pub settings: RwLock<BrokerSettings>,
     shutdown: RwLock<bool>,
-    pub(crate) clients: RwLock<Vec<Arc<Client>>>,
+    pub(crate) clients: RwLock<Vec<Arc<Session>>>,
     join_handles: RwLock<Vec<JoinHandle<()>>>,
 }
 

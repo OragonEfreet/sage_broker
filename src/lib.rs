@@ -5,20 +5,20 @@
 
 mod broker;
 mod broker_settings;
-mod client;
 mod control;
 mod peer;
+mod session;
 
 /// All functions related to service control.
 pub mod service;
 
 pub use broker::Broker;
 pub use broker_settings::BrokerSettings;
-pub use client::Client;
 use control::Control;
 use futures::channel::mpsc;
 use peer::Peer;
 use sage_mqtt::Packet;
+pub use session::Session;
 
 type ControlSender = mpsc::UnboundedSender<Control>;
 type ControlReceiver = mpsc::UnboundedReceiver<Control>;
