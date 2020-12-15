@@ -57,9 +57,10 @@ async fn test_function() {
     server.stop().await;
 }
 
-fn main() {
+#[async_std::main]
+async fn main() {
     pretty_env_logger::init();
-    task::block_on(test_function());
+    test_function().await;
 }
 
 pub struct TestServer {

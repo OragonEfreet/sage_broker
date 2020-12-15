@@ -62,7 +62,7 @@ async fn mqtt_3_1_4_1() {
     packet.encode(&mut buffer).await.unwrap();
     buffer[0] |= 0b1111; // Invalidate the packet
 
-    while let Err(_) = stream.write(&buffer).await {}
+    while stream.write(&buffer).await.is_err() {}
 
     // Wait for a response from the server within the next seconds
     let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
@@ -136,7 +136,7 @@ async fn mqtt_3_1_4_2() {
         let packet = Packet::from(connect);
         let mut buffer = Vec::new();
         packet.encode(&mut buffer).await.unwrap();
-        while let Err(_) = stream.write(&buffer).await {}
+        while stream.write(&buffer).await.is_err() {}
 
         // Wait for a response from the server within the next seconds
         let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
@@ -185,7 +185,7 @@ async fn mqtt_3_1_4_3() {
     });
     let mut buffer = Vec::new();
     packet.encode(&mut buffer).await.unwrap();
-    while let Err(_) = stream.write(&buffer).await {}
+    while stream.write(&buffer).await.is_err() {}
 
     // Wait for a response from the server within the next seconds
     let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
@@ -246,7 +246,7 @@ async fn mqtt_3_1_4_3() {
     });
     let mut buffer = Vec::new();
     packet.encode(&mut buffer).await.unwrap();
-    while let Err(_) = stream.write(&buffer).await {}
+    while stream.write(&buffer).await.is_err() {}
 
     // wait for receiving the Disconnect packet
     // If None, the operation was successful.

@@ -4,7 +4,7 @@ use async_std::{
     sync::{Arc, RwLock},
 };
 use log::{debug, error, info};
-use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, ReasonCode};
+use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode};
 
 enum TreatAction {
     // None,
@@ -59,6 +59,7 @@ async fn treat(broker: &Arc<Broker>, packet: Packet, source: &Arc<RwLock<Peer>>)
     } else {
         match packet {
             Packet::Connect(packet) => treat_connect(&broker, packet, &source).await,
+            Packet::PingReq => treat_pingreq(),
             _ => treat_unsupported(),
         }
     }
@@ -105,6 +106,11 @@ async fn treat_connect(
     } else {
         TreatAction::RespondAndDisconnect(connack.into())
     }
+}
+
+/// Simply returns a PingResp package
+fn treat_pingreq() -> TreatAction {
+    TreatAction::Respond(PingResp.into())
 }
 
 // Dev function that will actually be deleted once all packets are supported
