@@ -7,12 +7,12 @@ use async_std::{
 use futures::future;
 
 /// The broker instance. Holds and the data related to broker configuration and
-/// clients management.
+/// session management.
 pub struct Broker {
     /// The broker configuration
     pub settings: RwLock<BrokerSettings>,
     shutdown: RwLock<bool>,
-    pub(crate) clients: RwLock<Vec<Arc<Session>>>,
+    pub(crate) sessions: RwLock<Vec<Arc<Session>>>,
     join_handles: RwLock<Vec<JoinHandle<()>>>,
 }
 
@@ -23,7 +23,7 @@ impl Broker {
         Broker {
             settings: settings.into(),
             shutdown: false.into(),
-            clients: Default::default(),
+            sessions: Default::default(),
             join_handles: Default::default(),
         }
         .into()

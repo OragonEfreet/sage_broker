@@ -35,11 +35,6 @@ pub async fn run(listener: TcpListener, broker: Arc<Broker>) {
     // In our case we awaited it. So we're sure about it.
     // If `listen_tcp` still runs, it may create new connexions, hence the
     // importance of waiting for it.
-    //
-    // Now, we must notify all clients for disconnections by closing their
-    // peers:
-    //info!("Closing peers...");
-    //(*broker).close_clients().await;
 
     // At this point peers won't process any incoming data and thus no
     // new Control will be generated.

@@ -88,7 +88,7 @@ impl Default for BrokerSettings {
 impl BrokerSettings {
     /// Generates an acknowledgement packet given the `connect` packet and the
     /// current configuration.
-    pub fn acknowledge_connect(&self, connect: Connect) -> ConnAck {
+    pub fn acknowledge_connect(&self, connect: &Connect) -> ConnAck {
         // If the server forces the value, we use it.
         // Otherwise we take the value from the connect request or
         // the server one if absent.
