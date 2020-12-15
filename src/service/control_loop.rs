@@ -80,7 +80,7 @@ async fn treat_connect(
     // TODO not always. once extended auth is available, we may send
     // something else than connack
 
-    // Here we should attach a client to the peer
+    // Here we should attach a session to the peer
     // That means we need access to the peer.
     // TODO: We do that, no?
 

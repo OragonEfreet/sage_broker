@@ -9,7 +9,8 @@ use std::time::{Duration, Instant};
 mod utils;
 use utils::TestServer;
 
-/// Requirements:
+///////////////////////////////////////////////////////////////////////////////
+/// REQUIREMENT
 /// > If the Server does not receive a CONNECT packet within a reasonable amount
 /// > of time after the Network Connection is established
 /// > the Server SHOULD close the Network Connection.
@@ -38,6 +39,7 @@ async fn connect_timeout() {
     server.stop().await;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 /// Requirements:
 /// The Server MUST validate that the CONNECT packet matches the format
 /// described in section 3.1 and close the Network Connection if it does not
@@ -67,6 +69,7 @@ async fn mqtt_3_1_4_1() {
     server.stop().await;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 /// The Server MAY check that the contents of the CONNECT packet meet any
 /// further restrictions and SHOULD perform authentication and authorization
 /// checks. If any of these checks fail, it MUST close the Network Connection
@@ -123,6 +126,7 @@ async fn mqtt_3_1_4_2() {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
 /// If the ClientID represents a Client already connected to the Server, the
 /// Server sends a DISCONNECT packet to the existing Client with Reason Code
 /// of 0x8E (Session taken over) as described in section 4.13 and MUST close
@@ -201,7 +205,27 @@ async fn mqtt_3_1_4_3() {
     server.stop().await;
 }
 
-/// The Server MUST perform the processing of Clean Start that is described in
-/// section 3.1.2.4
+///////////////////////////////////////////////////////////////////////////////
+// If a CONNECT packet is received with Clean Start is set to 1, the Client and
+// Server MUST discard any existing Session and start a new Session
+// [MQTT-3.1.2-4]. Consequently, the Session Present flag in CONNACK is always
+// set to 0 if Clean Start is set to 1.
 #[async_std::test]
-async fn mqtt_3_1_4_4() {}
+async fn mqtt_3_1_2_4() {}
+
+///////////////////////////////////////////////////////////////////////////////
+// If a CONNECT packet is received with Clean Start set to 0 and there is
+// a Session associated with the Client Identifier, the Server MUST resume
+// communications with the Client based on state from the existing Session
+// [MQTT-3.1.2-5]. If a CONNECT packet is received with Clean Start set to
+// 0 and there is no Session associated with the Client Identifier, the Server
+//   MUST create a new Session [MQTT-3.1.2-6].
+#[async_std::test]
+async fn mqtt_3_1_2_5() {}
+
+///////////////////////////////////////////////////////////////////////////////
+// The Server MUST perform the processing of Clean Start that is described in
+// section 3.1.2.4 [MQTT-3.1.4-4]
+// Aggregation of:
+// - [MQTT-3.1.2-4]: mqtt_3_1_2_5()
+// - [MQTT-3.1.2-5]
