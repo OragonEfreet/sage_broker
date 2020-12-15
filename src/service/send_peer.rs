@@ -8,13 +8,7 @@ use log::{error, info};
 /// is broken, ending the function.
 /// The sender is held in a `Peer` instance.
 pub async fn send_peer(mut from_packet_channel: PacketReceiver, stream: Arc<TcpStream>) {
-    let addr = if let Ok(addr) = stream.peer_addr() {
-        addr.to_string()
-    } else {
-        "N/A".into()
-    };
-
-    info!("Start send loop for '{}'", addr);
+    info!("Start send loop for '{}'", stream.peer_addr().unwrap());
     let mut stream = &*stream;
     while let Some(packet) = from_packet_channel.next().await {
         log::debug!(">>> {}", packet);
@@ -26,5 +20,5 @@ pub async fn send_peer(mut from_packet_channel: PacketReceiver, stream: Arc<TcpS
             error!("Cannot send packet: {:?}", e);
         }
     }
-    info!("Stop send loop for '{}'", addr);
+    info!("Stop send loop for '{}'", stream.peer_addr().unwrap());
 }

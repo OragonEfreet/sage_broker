@@ -43,6 +43,7 @@ async fn create_peer(stream: TcpStream, control_sender: ControlSender, broker: &
         Err(e) => error!("Cannot get peer addr: {:?}", e),
         Ok(peer_addr) => {
             info!("Incoming connection from '{}'", peer_addr);
+
             // New peer
             // Create the packet send/receive channel
             // Launch the packet sender loop
@@ -58,7 +59,7 @@ async fn create_peer(stream: TcpStream, control_sender: ControlSender, broker: &
                 .spawn(service::send_peer(packet_receiver, stream.clone()))
                 .await;
 
-            let peer = Peer::new(packet_sender);
+            let peer = Peer::new(peer_addr, packet_sender);
             let peer = Arc::new(RwLock::new(peer));
 
             // No need to handle this one, a safe close

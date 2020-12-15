@@ -16,13 +16,7 @@ pub async fn listen_peer(
     broker: Arc<Broker>,
     stream: Arc<TcpStream>,
 ) {
-    let addr = if let Ok(addr) = stream.peer_addr() {
-        addr.to_string()
-    } else {
-        "N/A".into()
-    };
-
-    info!("Start listening from '{}'", addr,);
+    info!("Start listening from '{}'", peer.read().await.addr(),);
     // If the keep alive is 0, timeout_delay is set to 3 but the timeout error
     // won't disconnect the peer.
     // If the keep alive is > 0 timeout_delay is 1.5 times it, and a timeout will
@@ -108,5 +102,5 @@ pub async fn listen_peer(
         }
     }
 
-    info!("Stop listening from '{}'", addr);
+    info!("Start listening from '{}'", peer.read().await.addr(),);
 }
