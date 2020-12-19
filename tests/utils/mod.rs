@@ -1,9 +1,10 @@
 use async_std::{
     io::{self, prelude::*, Cursor, ErrorKind},
-    net::{SocketAddr, TcpStream},
+    net::{SocketAddr, TcpListener, TcpStream},
     sync::Arc,
     task::{self, JoinHandle},
 };
+use futures::channel::mpsc;
 use sage_broker::{service, Broker, BrokerSettings};
 use sage_mqtt::Packet;
 use std::time::Duration;
@@ -22,7 +23,7 @@ impl TestServer {
         let local_addr = listener.local_addr().unwrap();
 
         let broker = Broker::build(settings);
-        let service_task = task::spawn(service::run(listener, broker.clone()));
+        let service_task = task::spawn(run_server(listener, broker.clone()));
 
         TestServer {
             broker,
@@ -82,4 +83,13 @@ pub async fn send_waitback(
             Some(Packet::decode(&mut buf).await.unwrap())
         }
     }
+}
+
+// Run a server instance
+async fn run_server(listener: TcpListener, broker: Arc<Broker>) {
+    let (control_sender, control_receiver) = mpsc::unbounded();
+    let control_loop = task::spawn(service::control_loop(broker.clone(), control_receiver));
+    service::listen_tcp(listener, control_sender, broker.clone()).await;
+    control_loop.await;
+    broker.wait_pending().await;
 }
