@@ -1,6 +1,8 @@
 x get rid of the run function
 x get rid of the bind function
 - get rid of the waiters
+  - First strategy is to send all tasks to the control loop using a channel
+  - As a prerequisite we need to make Control an enum
 - instanciate client in control loop
 - find better than the shutdown flag (control ?)
 - control packet only interface even in the main code

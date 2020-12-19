@@ -8,6 +8,7 @@ mod broker_settings;
 mod control;
 mod peer;
 mod session;
+mod treat;
 
 /// All functions related to service control.
 pub mod service;
