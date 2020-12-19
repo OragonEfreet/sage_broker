@@ -69,12 +69,10 @@
 //! - The Listen TCP loop ends, releasing a Control Sender
 //! - The Control Loop ends.
 //!
-mod bind;
 mod control_loop;
 mod listen_peer;
 mod listen_tcp;
 mod send_peer;
-pub use bind::bind;
 pub use control_loop::control_loop;
 use listen_peer::listen_peer;
 pub use listen_tcp::listen_tcp;

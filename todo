@@ -1,4 +1,5 @@
-- get rid of the run function
+x get rid of the run function
+x get rid of the bind function
 - get rid of the waiters
 - instanciate client in control loop
 - find better than the shutdown flag (control ?)

@@ -18,8 +18,7 @@ pub const TIMEOUT_DELAY: u16 = 3;
 
 impl TestServer {
     pub async fn prepare(settings: BrokerSettings) -> TestServer {
-        let addr = "localhost:0";
-        let listener = service::bind(addr).await.unwrap();
+        let listener = TcpListener::bind("localhost:0").await.unwrap();
         let local_addr = listener.local_addr().unwrap();
 
         let broker = Broker::build(settings);
