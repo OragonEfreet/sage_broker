@@ -3,8 +3,8 @@ x get rid of the bind function
 x get rid of the waiters
   x First strategy is to send all tasks to the control loop using a channel
   x As a prerequisite we need to make Control an enum
-  - It seems to work but we have to think about it
-    - Investigate on how to get rid of it all by awaiting listener and sender
+  x It seems to work but we have to think about it
+    x Investigate on how to get rid of it all by awaiting listener and sender
       into listen_tcp
 - instanciate clients in control loop
 - Control should be renamed to Command
