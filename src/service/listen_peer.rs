@@ -102,5 +102,5 @@ pub async fn listen_peer(
         }
     }
 
-    info!("Start listening from '{}'", peer.read().await.addr(),);
+    info!("Stop listening from '{}'", peer.read().await.addr(),);
 }
