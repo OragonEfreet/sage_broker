@@ -13,7 +13,7 @@ x instanciate clients in control loop
     the Control loop to manipulate a struct on it's own.
 x Control should be renamed to Command
   x Then Control::Packet to Command::Control
-  - And the control loop is now the command loop
+  x And the control loop is now the command loop
 - find better than the shutdown flag (control ?)
 - control packet only interface even in the main code
 - get rid of broker
