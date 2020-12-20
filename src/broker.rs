@@ -1,4 +1,4 @@
-use crate::{BrokerSettings, Session};
+use crate::BrokerSettings;
 use async_std::sync::{Arc, RwLock};
 
 /// The broker instance. Holds and the data related to broker configuration and
@@ -7,7 +7,6 @@ pub struct Broker {
     /// The broker configuration
     pub settings: RwLock<BrokerSettings>,
     shutdown: RwLock<bool>,
-    pub(crate) sessions: RwLock<Vec<Arc<Session>>>,
 }
 
 impl Broker {
@@ -17,7 +16,6 @@ impl Broker {
         Broker {
             settings: settings.into(),
             shutdown: false.into(),
-            sessions: Default::default(),
         }
         .into()
     }

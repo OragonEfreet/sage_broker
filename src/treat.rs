@@ -12,6 +12,7 @@ pub enum TreatAction {
 
 pub async fn treat(
     broker: &Arc<Broker>,
+    sessions: &mut Vec<Arc<Session>>,
     packet: Packet,
     source: &Arc<RwLock<Peer>>,
 ) -> TreatAction {
@@ -36,7 +37,7 @@ pub async fn treat(
         )
     } else {
         match packet {
-            Packet::Connect(packet) => treat_connect(&broker, packet, &source).await,
+            Packet::Connect(packet) => treat_connect(&broker, sessions, packet, &source).await,
             Packet::PingReq => treat_pingreq(),
             _ => treat_unsupported(),
         }
@@ -45,6 +46,7 @@ pub async fn treat(
 
 async fn treat_connect(
     broker: &Arc<Broker>,
+    sessions: &mut Vec<Arc<Session>>,
     connect: Connect,
     peer: &Arc<RwLock<Peer>>,
 ) -> TreatAction {
@@ -64,7 +66,6 @@ async fn treat_connect(
 
     if connack.reason_code == ReasonCode::Success {
         // Session creation/overtaking
-        let mut sessions = broker.sessions.write().await;
 
         // We search, in any other aleady existing sessions, if the name is
         // already taken. If so, we extract the client.

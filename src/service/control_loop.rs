@@ -1,3 +1,4 @@
+use crate::Session;
 use crate::{
     treat::{treat, TreatAction},
     Broker, Control, ControlReceiver, Peer,
@@ -19,21 +20,28 @@ use sage_mqtt::Packet;
 /// The control loop ends.
 /// TODO Eventually, this task may be a spawner for other tasks
 pub async fn control_loop(broker: Arc<Broker>, mut from_control_channel: ControlReceiver) {
-    // Create a Vec<JoinHanle<()>> that will be used for joining all tasks
-    // at the end of the control_loop
+    // The sessions list, maintaining all active (and inactive?) sessions
+    // of the broker.
+    // ATM, it does not need to be RwLocked, because only this task accesses it.
+    let mut sessions = Vec::new();
 
     info!("Start control loop");
     while let Some(control) = from_control_channel.next().await {
         // Currently can only be Control::Packet
 
         let Control::Packet(peer, packet) = control;
-        control_packet(&broker, packet, peer).await;
+        control_packet(&broker, &mut sessions, packet, peer).await;
     }
     info!("Stop control loop");
 }
 
-async fn control_packet(broker: &Arc<Broker>, packet: Packet, source: Arc<RwLock<Peer>>) {
-    match treat(&broker, packet, &source).await {
+async fn control_packet(
+    broker: &Arc<Broker>,
+    sessions: &mut Vec<Arc<Session>>,
+    packet: Packet,
+    source: Arc<RwLock<Peer>>,
+) {
+    match treat(&broker, sessions, packet, &source).await {
         TreatAction::Respond(packet) => source.write().await.send(packet).await,
         TreatAction::RespondAndDisconnect(packet) => source.write().await.send_close(packet).await,
     };

@@ -6,7 +6,11 @@ x get rid of the waiters
   x It seems to work but we have to think about it
     x Investigate on how to get rid of it all by awaiting listener and sender
       into listen_tcp
-- instanciate clients in control loop
+x instanciate clients in control loop
+  x Currently, any interactions done with the clients are in the control loop.
+    It may be a hint on the fact that the broker IS the control loop
+  x It works. Also, the way parameters are passed to the treat functions invites
+    the Control loop to manipulate a struct on it's own.
 - Control should be renamed to Command
   - Then Control::Packet to Command::Control
 - find better than the shutdown flag (control ?)
