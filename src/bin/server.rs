@@ -28,7 +28,18 @@ async fn main() {
         // In this example, we await it directly, but you may launch it
         // and join it later.
         info!("Creating the listen loop...");
-        service::listen_tcp(listener, control_sender, broker.clone()).await;
+        let server = task::spawn(service::listen_tcp(
+            listener,
+            control_sender,
+            broker.clone(),
+        ));
+
+        use std::time::Duration;
+        task::sleep(Duration::from_secs(10)).await;
+        println!("Shutdown");
+        broker.shutdown().await;
+
+        server.await;
         info!("Listen loop ended");
 
         // When `broker.is_shutting_down().await` returns true, `listen_tcp` will
@@ -52,15 +63,11 @@ async fn main() {
         // they are all complete, `control_loop` will end.
         // Thus, by awaiting for `control_loop`, we ensure all `listen_peer` and
         // `control_loop` are done.
+        //
+        // Control loop will itself wait for the end of all pending tasks
+        // registered by any other part of the server
         info!("Waiting for control loop to complete...");
         control_loop.await;
-
-        // At this point the server won't receive nor process anything, but pending
-        // process may still be running:
-        // - Packets to be sent
-        // All pending operations can be awaited with:
-        info!("Waiting for other tasks to complete...");
-        broker.wait_pending().await;
 
         info!("Done.");
     }

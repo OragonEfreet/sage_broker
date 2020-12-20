@@ -90,5 +90,4 @@ async fn run_server(listener: TcpListener, broker: Arc<Broker>) {
     let control_loop = task::spawn(service::control_loop(broker.clone(), control_receiver));
     service::listen_tcp(listener, control_sender, broker.clone()).await;
     control_loop.await;
-    broker.wait_pending().await;
 }

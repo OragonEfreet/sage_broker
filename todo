@@ -1,10 +1,16 @@
 x get rid of the run function
 x get rid of the bind function
-- get rid of the waiters
-  - First strategy is to send all tasks to the control loop using a channel
-  - As a prerequisite we need to make Control an enum
-- instanciate client in control loop
+x get rid of the waiters
+  x First strategy is to send all tasks to the control loop using a channel
+  x As a prerequisite we need to make Control an enum
+  - It seems to work but we have to think about it
+    - Investigate on how to get rid of it all by awaiting listener and sender
+      into listen_tcp
+- instanciate clients in control loop
+- Control should be renamed to Command
+  - Then Control::Packet to Command::Control
 - find better than the shutdown flag (control ?)
 - control packet only interface even in the main code
 - get rid of broker
+- Eventually, check for documentation in server and mod
 
