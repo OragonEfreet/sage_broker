@@ -1,4 +1,4 @@
-use crate::{Broker, ControlSender, Peer};
+use crate::{Broker, CommandSender, Peer};
 use async_std::{
     future,
     io::BufReader,
@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 
 pub async fn listen_peer(
     peer: Arc<RwLock<Peer>>,
-    mut to_control_channel: ControlSender,
+    mut to_command_channel: CommandSender,
     broker: Arc<Broker>,
     stream: Arc<TcpStream>,
 ) {
@@ -63,10 +63,10 @@ pub async fn listen_peer(
             }
 
             match decoded {
-                // If the result is a packet, we create a packet control
+                // If the result is a packet, we create a packet command
                 Ok(packet) => {
-                    if let Err(e) = to_control_channel.send((peer.clone(), packet).into()).await {
-                        error!("Cannot send control: {:?}", e);
+                    if let Err(e) = to_command_channel.send((peer.clone(), packet).into()).await {
+                        error!("Cannot send command: {:?}", e);
                     }
                 }
                 // If it's an error (usually ProtocolError o MalformedPacket),

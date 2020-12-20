@@ -1,4 +1,4 @@
-use crate::{service, Broker, ControlSender, Peer};
+use crate::{service, Broker, CommandSender, Peer};
 use async_std::{
     future,
     net::{TcpListener, TcpStream},
@@ -9,13 +9,13 @@ use futures::{channel::mpsc, future::join_all};
 use log::{error, info};
 use std::time::Duration;
 
-/// Creates a channel for control packets and starts the control loop and the
+/// Creates a channel for control packets and starts the command loop and the
 /// listen Tcp loop.
 /// `listener` can be any instance of `async_std::net::TcpListener` but you can
 /// use `bind` to obtain one.
 pub async fn listen_tcp(
     listener: TcpListener,
-    to_control_channel: ControlSender,
+    to_command_channel: CommandSender,
     broker: Arc<Broker>,
 ) {
     // Listen to any connection
@@ -36,7 +36,7 @@ pub async fn listen_tcp(
                 Err(e) => error!("Cannot accept Tcp stream: {}", e.to_string()),
                 Ok((stream, _)) => {
                     if let Some((listener, sender)) =
-                        create_peer(stream, to_control_channel.clone(), &broker).await
+                        create_peer(stream, to_command_channel.clone(), &broker).await
                     {
                         tcp_listeners.push(listener);
                         tcp_senders.push(sender);
@@ -55,7 +55,7 @@ pub async fn listen_tcp(
 
 async fn create_peer(
     stream: TcpStream,
-    control_sender: ControlSender,
+    command_sender: CommandSender,
     broker: &Arc<Broker>,
 ) -> Option<(JoinHandle<()>, JoinHandle<()>)> {
     match stream.peer_addr() {
@@ -79,22 +79,18 @@ async fn create_peer(
             // open anymore.
             // The packet sender is held in the Peer instance, meaning that
             // it is alive as long as the listen_peer is, and any pending
-            // task temporary keeping the Peer alive (Control Packets)
+            // task temporary keeping the Peer alive (Command Packets)
             let listen_task = task::spawn(service::send_peer(packet_receiver, stream.clone()));
-
-            //            if let Err(e) = control_sender.send(task.into()).await {
-            //                error!("Cannot send task control: {:?}", e);
-            //            }
 
             let peer = Peer::new(peer_addr, packet_sender);
             let peer = Arc::new(RwLock::new(peer));
 
             // No need to handle this one, a safe close
-            // Will always terminate it before the control_loop
+            // Will always terminate it before the command_loop
             // See "service::run" for example
             let sender_task = task::spawn(service::listen_peer(
                 peer,
-                control_sender,
+                command_sender,
                 broker.clone(),
                 stream,
             ));

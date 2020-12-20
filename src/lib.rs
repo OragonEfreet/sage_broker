@@ -5,7 +5,7 @@
 
 mod broker;
 mod broker_settings;
-mod control;
+mod command;
 mod peer;
 mod session;
 mod treat;
@@ -15,14 +15,14 @@ pub mod service;
 
 pub use broker::Broker;
 pub use broker_settings::BrokerSettings;
-use control::Control;
+use command::Command;
 use futures::channel::mpsc;
 use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::Session;
 
-type ControlSender = mpsc::UnboundedSender<Control>;
-type ControlReceiver = mpsc::UnboundedReceiver<Control>;
+type CommandSender = mpsc::UnboundedSender<Command>;
+type CommandReceiver = mpsc::UnboundedReceiver<Command>;
 
 type PacketReceiver = mpsc::UnboundedReceiver<Packet>;
 type PacketSender = mpsc::UnboundedSender<Packet>;

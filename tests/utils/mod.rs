@@ -86,8 +86,8 @@ pub async fn send_waitback(
 
 // Run a server instance
 async fn run_server(listener: TcpListener, broker: Arc<Broker>) {
-    let (control_sender, control_receiver) = mpsc::unbounded();
-    let control_loop = task::spawn(service::control_loop(broker.clone(), control_receiver));
-    service::listen_tcp(listener, control_sender, broker.clone()).await;
-    control_loop.await;
+    let (command_sender, command_receiver) = mpsc::unbounded();
+    let command_loop = task::spawn(service::command_loop(broker.clone(), command_receiver));
+    service::listen_tcp(listener, command_sender, broker.clone()).await;
+    command_loop.await;
 }

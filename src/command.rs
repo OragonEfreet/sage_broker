@@ -4,18 +4,18 @@ use sage_mqtt::Packet;
 use std::fmt;
 
 // It's an enum because we will want to create other command types
-pub enum Control {
-    Packet(Arc<RwLock<Peer>>, Packet),
+pub enum Command {
+    Control(Arc<RwLock<Peer>>, Packet),
 }
 
-impl fmt::Display for Control {
+impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Control")
+        write!(f, "Command")
     }
 }
 
-impl From<(Arc<RwLock<Peer>>, Packet)> for Control {
+impl From<(Arc<RwLock<Peer>>, Packet)> for Command {
     fn from(v: (Arc<RwLock<Peer>>, Packet)) -> Self {
-        Control::Packet(v.0, v.1)
+        Command::Control(v.0, v.1)
     }
 }

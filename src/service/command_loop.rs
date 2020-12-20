@@ -1,7 +1,7 @@
 use crate::Session;
 use crate::{
     treat::{treat, TreatAction},
-    Broker, Control, ControlReceiver, Peer,
+    Broker, Command, CommandReceiver, Peer,
 };
 use async_std::{
     prelude::*,
@@ -10,29 +10,29 @@ use async_std::{
 use log::info;
 use sage_mqtt::Packet;
 
-/// The control loop is reponsible from receiving and treating any control
+/// The command loop is reponsible from receiving and treating any command
 /// packet. I thus represent the actual instance of a running broker.
 /// The loop holds and manages the list of sessions, dispatching messages from
 /// client to client.
-/// The loop automatically ends when all control sender channels are dropped.
+/// The loop automatically ends when all command sender channels are dropped.
 /// These are held by `listen_loop` (one per peer) and the `listen_tcp`
 /// tasks. Meaning when all peers are dropped and port listenning is stopped
-/// The control loop ends.
+/// The command loop ends.
 /// TODO Eventually, this task may be a spawner for other tasks
-pub async fn control_loop(broker: Arc<Broker>, mut from_control_channel: ControlReceiver) {
+pub async fn command_loop(broker: Arc<Broker>, mut from_command_channel: CommandReceiver) {
     // The sessions list, maintaining all active (and inactive?) sessions
     // of the broker.
     // ATM, it does not need to be RwLocked, because only this task accesses it.
     let mut sessions = Vec::new();
 
-    info!("Start control loop");
-    while let Some(control) = from_control_channel.next().await {
-        // Currently can only be Control::Packet
+    info!("Start command loop");
+    while let Some(command) = from_command_channel.next().await {
+        // Currently can only be Command::Control
 
-        let Control::Packet(peer, packet) = control;
+        let Command::Control(peer, packet) = command;
         control_packet(&broker, &mut sessions, packet, peer).await;
     }
-    info!("Stop control loop");
+    info!("Stop command loop");
 }
 
 async fn control_packet(

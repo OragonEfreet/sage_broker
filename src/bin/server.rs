@@ -16,11 +16,11 @@ async fn main() {
         //let service = task::spawn(service::run(listener, broker.clone()));
         //service.await;
 
-        // Create the control packet channel and spawn a new
-        // task for control packet treatment.
-        let (control_sender, control_receiver) = mpsc::unbounded();
-        info!("Creating the control loop...");
-        let control_loop = task::spawn(service::control_loop(broker.clone(), control_receiver));
+        // Create the command packet channel and spawn a new
+        // task for command packet treatment.
+        let (command_sender, command_receiver) = mpsc::unbounded();
+        info!("Creating the command loop...");
+        let command_loop = task::spawn(service::command_loop(broker.clone(), command_receiver));
 
         // Launch the listen server.
         // This is the main task, responsible for listening the Tcp connexions
@@ -30,7 +30,7 @@ async fn main() {
         info!("Creating the listen loop...");
         let server = task::spawn(service::listen_tcp(
             listener,
-            control_sender,
+            command_sender,
             broker.clone(),
         ));
 
@@ -56,18 +56,18 @@ async fn main() {
         // importance of waiting for it.
 
         // At this point peers won't process any incoming data and thus no
-        // new Control will be generated.
+        // new command will be generated.
         // All peers being flagged as closed, their respective `listen_peer` tasks
         // will all end.
-        // `listen_peer` hold a `ControlSender` instance, which means that once
-        // they are all complete, `control_loop` will end.
-        // Thus, by awaiting for `control_loop`, we ensure all `listen_peer` and
-        // `control_loop` are done.
+        // `listen_peer` hold a `CommandSender` instance, which means that once
+        // they are all complete, `command_loop` will end.
+        // Thus, by awaiting for `command_loop`, we ensure all `listen_peer` and
+        // `command_loop` are done.
         //
-        // Control loop will itself wait for the end of all pending tasks
+        // Command loop will itself wait for the end of all pending tasks
         // registered by any other part of the server
-        info!("Waiting for control loop to complete...");
-        control_loop.await;
+        info!("Waiting for command loop to complete...");
+        command_loop.await;
 
         info!("Done.");
     }
