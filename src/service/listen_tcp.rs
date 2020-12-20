@@ -1,4 +1,4 @@
-use crate::{service, Broker, CommandSender, Peer};
+use crate::{service, Broker, CommandSender, Peer, Trigger};
 use async_std::{
     future,
     net::{TcpListener, TcpStream},
@@ -17,6 +17,7 @@ pub async fn listen_tcp(
     listener: TcpListener,
     to_command_channel: CommandSender,
     broker: Arc<Broker>,
+    shutdown: Trigger,
 ) {
     // Listen to any connection
     info!(
@@ -29,14 +30,19 @@ pub async fn listen_tcp(
     let mut tcp_listeners = Vec::new();
     let mut tcp_senders = Vec::new();
 
-    while !broker.is_shutting_down().await {
+    while !shutdown.is_fired().await {
         // Listen for 1 second for an incoming connexion
         if let Ok(result) = future::timeout(listen_timeout, listener.accept()).await {
             match result {
                 Err(e) => error!("Cannot accept Tcp stream: {}", e.to_string()),
                 Ok((stream, _)) => {
-                    if let Some((listener, sender)) =
-                        create_peer(stream, to_command_channel.clone(), &broker).await
+                    if let Some((listener, sender)) = create_peer(
+                        stream,
+                        to_command_channel.clone(),
+                        &broker,
+                        shutdown.clone(),
+                    )
+                    .await
                     {
                         tcp_listeners.push(listener);
                         tcp_senders.push(sender);
@@ -57,6 +63,7 @@ async fn create_peer(
     stream: TcpStream,
     command_sender: CommandSender,
     broker: &Arc<Broker>,
+    shutdown: Trigger,
 ) -> Option<(JoinHandle<()>, JoinHandle<()>)> {
     match stream.peer_addr() {
         Err(e) => {
@@ -80,7 +87,7 @@ async fn create_peer(
             // The packet sender is held in the Peer instance, meaning that
             // it is alive as long as the listen_peer is, and any pending
             // task temporary keeping the Peer alive (Command Packets)
-            let listen_task = task::spawn(service::send_peer(packet_receiver, stream.clone()));
+            let sender_task = task::spawn(service::send_peer(packet_receiver, stream.clone()));
 
             let peer = Peer::new(peer_addr, packet_sender);
             let peer = Arc::new(RwLock::new(peer));
@@ -88,11 +95,12 @@ async fn create_peer(
             // No need to handle this one, a safe close
             // Will always terminate it before the command_loop
             // See "service::run" for example
-            let sender_task = task::spawn(service::listen_peer(
+            let listen_task = task::spawn(service::listen_peer(
                 peer,
                 command_sender,
                 broker.clone(),
                 stream,
+                shutdown,
             ));
 
             Some((listen_task, sender_task))

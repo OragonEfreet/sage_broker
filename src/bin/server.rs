@@ -2,7 +2,7 @@ use async_std::net::{TcpListener, ToSocketAddrs};
 use async_std::task;
 use futures::channel::mpsc;
 use log::{error, info};
-use sage_broker::{service, Broker, BrokerSettings};
+use sage_broker::{service, Broker, BrokerSettings, Trigger};
 
 #[async_std::main]
 async fn main() {
@@ -13,6 +13,8 @@ async fn main() {
             ..Default::default()
         });
 
+        let shutdown = Trigger::default();
+
         //let service = task::spawn(service::run(listener, broker.clone()));
         //service.await;
 
@@ -20,7 +22,11 @@ async fn main() {
         // task for command packet treatment.
         let (command_sender, command_receiver) = mpsc::unbounded();
         info!("Creating the command loop...");
-        let command_loop = task::spawn(service::command_loop(broker.clone(), command_receiver));
+        let command_loop = task::spawn(service::command_loop(
+            broker.clone(),
+            command_receiver,
+            shutdown.clone(),
+        ));
 
         // Launch the listen server.
         // This is the main task, responsible for listening the Tcp connexions
@@ -32,12 +38,13 @@ async fn main() {
             listener,
             command_sender,
             broker.clone(),
+            shutdown.clone(),
         ));
 
         use std::time::Duration;
         task::sleep(Duration::from_secs(10)).await;
-        println!("Shutdown");
-        broker.shutdown().await;
+        println!("Shutting down");
+        shutdown.fire().await;
 
         server.await;
         info!("Listen loop ended");

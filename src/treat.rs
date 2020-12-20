@@ -1,4 +1,4 @@
-use crate::{Broker, Peer, Session};
+use crate::{Broker, Peer, Session, Trigger};
 use async_std::sync::{Arc, RwLock};
 use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode};
@@ -15,6 +15,7 @@ pub async fn treat(
     sessions: &mut Vec<Arc<Session>>,
     packet: Packet,
     source: &Arc<RwLock<Peer>>,
+    shutdown: &Trigger,
 ) -> TreatAction {
     debug!(
         "<<< [{}]: {:?}",
@@ -27,7 +28,7 @@ pub async fn treat(
     );
     // If the broker is stopping, let's notify here the client with a
     // DISCONNECT and close the peer
-    if broker.is_shutting_down().await {
+    if shutdown.is_fired().await {
         TreatAction::RespondAndDisconnect(
             Disconnect {
                 reason_code: ReasonCode::ServerShuttingDown,

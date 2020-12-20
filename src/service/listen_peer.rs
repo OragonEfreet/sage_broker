@@ -1,4 +1,4 @@
-use crate::{Broker, CommandSender, Peer};
+use crate::{Broker, CommandSender, Peer, Trigger};
 use async_std::{
     future,
     io::BufReader,
@@ -15,6 +15,7 @@ pub async fn listen_peer(
     mut to_command_channel: CommandSender,
     broker: Arc<Broker>,
     stream: Arc<TcpStream>,
+    shutdown: Trigger,
 ) {
     info!("Start listening from '{}'", peer.read().await.addr(),);
     // If the keep alive is 0, timeout_delay is set to 3 but the timeout error
@@ -41,7 +42,7 @@ pub async fn listen_peer(
             debug!("KeepAlive: {:?}/{:?}", last.elapsed(), max);
         }
         // If the server is closing, we close the peer too and break
-        if broker.is_shutting_down().await {
+        if shutdown.is_fired().await {
             let packet = Disconnect {
                 reason_code: ReasonCode::ServerShuttingDown,
                 ..Default::default()

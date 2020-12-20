@@ -14,8 +14,13 @@ x instanciate clients in control loop
 x Control should be renamed to Command
   x Then Control::Packet to Command::Control
   x And the control loop is now the command loop
-- find better than the shutdown flag (control ?)
+x find better than the shutdown flag (control ?)
+  x I don't know if it's better but it's funnier. I provide a fire-and-forget
+    bool that can be shared across tasks. Once fired, the server is in safe
+    shutdown state
 - control packet only interface even in the main code
 - get rid of broker
 - Eventually, check for documentation in server and mod
+- By setting a decouplable shutdown, maybe the command loop should return the
+  command receiver to allow new loops to be created afterwards
 
