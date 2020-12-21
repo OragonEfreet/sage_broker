@@ -3,7 +3,6 @@
 // #![warn(missing_doc_code_examples)]
 #![allow(clippy::large_enum_variant)]
 
-mod broker;
 mod broker_settings;
 mod command;
 mod peer;
@@ -14,7 +13,6 @@ mod trigger;
 /// All functions related to service control.
 pub mod service;
 
-pub use broker::Broker;
 pub use broker_settings::BrokerSettings;
 use command::Command;
 use futures::channel::mpsc;

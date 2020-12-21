@@ -1,4 +1,4 @@
-use crate::{Broker, Peer, Session, Trigger};
+use crate::{BrokerSettings, Peer, Session, Trigger};
 use async_std::sync::{Arc, RwLock};
 use log::{debug, error, info};
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode};
@@ -11,7 +11,7 @@ pub enum TreatAction {
 }
 
 pub async fn treat(
-    broker: &Arc<Broker>,
+    settings: &Arc<BrokerSettings>,
     sessions: &mut Vec<Arc<Session>>,
     packet: Packet,
     source: &Arc<RwLock<Peer>>,
@@ -38,7 +38,7 @@ pub async fn treat(
         )
     } else {
         match packet {
-            Packet::Connect(packet) => treat_connect(&broker, sessions, packet, &source).await,
+            Packet::Connect(packet) => treat_connect(&settings, sessions, packet, &source).await,
             Packet::PingReq => treat_pingreq(),
             _ => treat_unsupported(),
         }
@@ -46,7 +46,7 @@ pub async fn treat(
 }
 
 async fn treat_connect(
-    broker: &Arc<Broker>,
+    settings: &Arc<BrokerSettings>,
     sessions: &mut Vec<Arc<Session>>,
     connect: Connect,
     peer: &Arc<RwLock<Peer>>,
@@ -54,7 +54,7 @@ async fn treat_connect(
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
     let client_id = connect.client_id.clone();
-    let connack = broker.settings.read().await.acknowledge_connect(&connect);
+    let connack = settings.acknowledge_connect(&connect);
     let client_id = connack.assigned_client_id.clone().or(client_id).unwrap();
 
     // Whatever the connack is, it falls into two cases: Success or not.

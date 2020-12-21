@@ -1,4 +1,4 @@
-use crate::{Broker, CommandSender, Peer, Trigger};
+use crate::{BrokerSettings, CommandSender, Peer, Trigger};
 use async_std::{
     future,
     io::BufReader,
@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 pub async fn listen_peer(
     peer: Arc<RwLock<Peer>>,
     mut to_command_channel: CommandSender,
-    broker: Arc<Broker>,
+    settings: Arc<BrokerSettings>,
     stream: Arc<TcpStream>,
     shutdown: Trigger,
 ) {
@@ -23,7 +23,7 @@ pub async fn listen_peer(
     // If the keep alive is > 0 timeout_delay is 1.5 times it, and a timeout will
     // disconnect
     let mut keep_alive = {
-        let keep_alive = broker.settings.read().await.keep_alive;
+        let keep_alive = settings.keep_alive;
 
         if keep_alive == 0 {
             info!("Time out is disabled");

@@ -1,29 +1,26 @@
 use async_std::net::{TcpListener, ToSocketAddrs};
-use async_std::task;
+use async_std::{sync::Arc, task};
 use futures::channel::mpsc;
 use log::{error, info};
-use sage_broker::{service, Broker, BrokerSettings, Trigger};
+use sage_broker::{service, BrokerSettings, Trigger};
 
 #[async_std::main]
 async fn main() {
     pretty_env_logger::init();
     if let Some(listener) = bind("localhost:1883").await {
-        let broker = Broker::build(BrokerSettings {
+        let settings = Arc::new(BrokerSettings {
             keep_alive: 0,
             ..Default::default()
         });
 
         let shutdown = Trigger::default();
 
-        //let service = task::spawn(service::run(listener, broker.clone()));
-        //service.await;
-
         // Create the command packet channel and spawn a new
         // task for command packet treatment.
         let (command_sender, command_receiver) = mpsc::unbounded();
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
-            broker.clone(),
+            settings.clone(),
             command_receiver,
             shutdown.clone(),
         ));
@@ -37,7 +34,7 @@ async fn main() {
         let server = task::spawn(service::listen_tcp(
             listener,
             command_sender,
-            broker.clone(),
+            settings,
             shutdown.clone(),
         ));
 

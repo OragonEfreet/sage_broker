@@ -5,12 +5,12 @@ use async_std::{
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
-use sage_broker::{service, Broker, BrokerSettings, Trigger};
+use sage_broker::{service, BrokerSettings, Trigger};
 use sage_mqtt::Packet;
 use std::time::Duration;
 
 pub struct TestServer {
-    pub broker: Arc<Broker>,
+    pub settings: Arc<BrokerSettings>,
     service_task: JoinHandle<()>,
     pub local_addr: SocketAddr,
     shutdown: Trigger,
@@ -21,13 +21,13 @@ impl TestServer {
     pub async fn prepare(settings: BrokerSettings) -> TestServer {
         let listener = TcpListener::bind("localhost:0").await.unwrap();
         let local_addr = listener.local_addr().unwrap();
+        let settings = Arc::new(settings);
 
-        let broker = Broker::build(settings);
         let shutdown = Trigger::default();
-        let service_task = task::spawn(run_server(listener, broker.clone(), shutdown.clone()));
+        let service_task = task::spawn(run_server(listener, settings.clone(), shutdown.clone()));
 
         TestServer {
-            broker,
+            settings,
             service_task,
             local_addr,
             shutdown,
@@ -88,13 +88,13 @@ pub async fn send_waitback(
 }
 
 // Run a server instance
-async fn run_server(listener: TcpListener, broker: Arc<Broker>, shutdown: Trigger) {
+async fn run_server(listener: TcpListener, settings: Arc<BrokerSettings>, shutdown: Trigger) {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
-        broker.clone(),
+        settings.clone(),
         command_receiver,
         shutdown.clone(),
     ));
-    service::listen_tcp(listener, command_sender, broker.clone(), shutdown).await;
+    service::listen_tcp(listener, command_sender, settings, shutdown).await;
     command_loop.await;
 }
