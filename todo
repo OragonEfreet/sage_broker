@@ -18,8 +18,9 @@ x find better than the shutdown flag (control ?)
   x I don't know if it's better but it's funnier. I provide a fire-and-forget
     bool that can be shared across tasks. Once fired, the server is in safe
     shutdown state
-- get rid of broker
+x get rid of broker
 - control packet only interface even in the main code
+  - Well apart from the trigger which can be fired anywhere from
 - Eventually, check for documentation in server and mod
 - By setting a decouplable shutdown, maybe the command loop should return the
   command receiver to allow new loops to be created afterwards
