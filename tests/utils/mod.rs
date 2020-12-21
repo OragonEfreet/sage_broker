@@ -68,9 +68,8 @@ pub async fn send_waitback(
 
     if invalid {
         buffer[0] |= 0b1111; // Invalidate the packet
-                             // TODO Assert the packet IS invalid
     }
-    while stream.write(&buffer).await.is_err() {} // TODO Should we timeout this?
+    while stream.write(&buffer).await.is_err() {}
 
     let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
     let mut buf = vec![0u8; 1024];

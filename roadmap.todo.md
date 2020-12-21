@@ -1,0 +1,14 @@
+- [ ] Commands used to interface with the Command loop 
+- [ ] Check for documentation of server.rs and mod.rs
+- [ ] ! MQTT 3.1.4.4
+  - [ ] A Session must avec access to its Peer
+- [ ] In tests utils, assert an invalid packet is, indeed, invalid
+- [X] Refactor
+  - [X] Make Command Loop return both receiver and sessions
+  - [X] Get rid of Broker
+  - [X] Find better than the shutdown flag
+  - [X] Rename Control to Command 
+  - [X] Create sessions from the server.rs
+  - [X] Get rid of explicit waiters
+  - [X] Get rid of the bind function
+  - [X] Get rid of the run function 

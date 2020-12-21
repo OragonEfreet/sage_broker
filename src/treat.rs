@@ -57,14 +57,6 @@ async fn treat_connect(
     let connack = settings.acknowledge_connect(&connect);
     let client_id = connack.assigned_client_id.clone().or(client_id).unwrap();
 
-    // Whatever the connack is, it falls into two cases: Success or not.
-    // TODO not always. once extended auth is available, we may send
-    // something else than connack
-
-    // Here we should attach a session to the peer
-    // That means we need access to the peer.
-    // TODO: We do that, no? - No we don't.
-
     if connack.reason_code == ReasonCode::Success {
         // Session creation/overtaking
 
