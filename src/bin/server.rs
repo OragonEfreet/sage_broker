@@ -20,6 +20,7 @@ async fn main() {
         let (command_sender, command_receiver) = mpsc::unbounded();
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
+            Default::default(),
             settings.clone(),
             command_receiver,
             shutdown.clone(),

@@ -18,17 +18,13 @@ use sage_mqtt::Packet;
 /// These are held by `listen_loop` (one per peer) and the `listen_tcp`
 /// tasks. Meaning when all peers are dropped and port listenning is stopped
 /// The command loop ends.
-/// TODO Eventually, this task may be a spawner for other tasks
+/// Eventually, this task may be a spawner for other tasks
 pub async fn command_loop(
+    mut sessions: Vec<Arc<Session>>,
     settings: Arc<BrokerSettings>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
-) {
-    // The sessions list, maintaining all active (and inactive?) sessions
-    // of the broker.
-    // ATM, it does not need to be RwLocked, because only this task accesses it.
-    let mut sessions = Vec::new();
-
+) -> (Vec<Arc<Session>>, CommandReceiver) {
     info!("Start command loop");
     while let Some(command) = from_command_channel.next().await {
         // Currently can only be Command::Control
@@ -37,6 +33,8 @@ pub async fn command_loop(
         control_packet(&settings, &mut sessions, packet, peer, &shutdown).await;
     }
     info!("Stop command loop");
+
+    (sessions, from_command_channel)
 }
 
 async fn control_packet(

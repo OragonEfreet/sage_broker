@@ -91,6 +91,7 @@ pub async fn send_waitback(
 async fn run_server(listener: TcpListener, settings: Arc<BrokerSettings>, shutdown: Trigger) {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
+        Default::default(),
         settings.clone(),
         command_receiver,
         shutdown.clone(),
