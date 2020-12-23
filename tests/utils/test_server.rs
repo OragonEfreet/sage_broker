@@ -1,10 +1,11 @@
+use crate::utils::TestSessions;
 use async_std::{
     net::{SocketAddr, TcpListener, TcpStream},
     sync::Arc,
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
-use sage_broker::{service, BrokerSettings, Sessions, Trigger};
+use sage_broker::{service, BrokerSettings, Trigger};
 use std::time::Duration;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,7 +60,7 @@ impl TestServer {
 async fn run_server(listener: TcpListener, settings: Arc<BrokerSettings>, shutdown: Trigger) {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
-        Sessions::default(),
+        TestSessions::default(),
         settings.clone(),
         command_receiver,
         shutdown.clone(),
