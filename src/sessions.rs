@@ -3,7 +3,6 @@ use async_std::{
     sync::{Arc, RwLock},
     task,
 };
-use sage_mqtt::ClientID;
 
 /// Holds sessions manipulated from the Command Loop
 #[derive(Default)]
@@ -14,7 +13,7 @@ pub struct Sessions {
 impl Sessions {
     /// Searches for the Session at given index and returns it.
     /// If `take`  is set, the session will be extracted from the database
-    pub fn take(&mut self, client_id: &ClientID) -> Option<Arc<RwLock<Session>>> {
+    pub fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
         if let Some(index) = self
             .db
             .iter()

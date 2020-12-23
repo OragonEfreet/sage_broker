@@ -204,7 +204,7 @@ async fn mqtt_3_1_4_3() {
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
     let server = TestServer::prepare(Default::default()).await;
-    let mut stream = server.create_client().await.unwrap();
+    let _stream = server.create_client().await.unwrap();
     server.stop().await;
 }
 
@@ -215,7 +215,7 @@ async fn mqtt_3_1_2_4() {
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
     let server = TestServer::prepare(Default::default()).await;
-    let mut stream = server.create_client().await.unwrap();
+    let _stream = server.create_client().await.unwrap();
     server.stop().await;
 }
 
@@ -225,7 +225,7 @@ async fn mqtt_3_1_2_5() {
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
     let server = TestServer::prepare(Default::default()).await;
-    let mut stream = server.create_client().await.unwrap();
+    let _stream = server.create_client().await.unwrap();
     server.stop().await;
 }
 ///////////////////////////////////////////////////////////////////////////////
