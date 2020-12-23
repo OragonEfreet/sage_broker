@@ -199,26 +199,39 @@ async fn mqtt_3_1_4_3() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// If a CONNECT packet is received with Clean Start is set to 1, the Client and
-// Server MUST discard any existing Session and start a new Session
-// [MQTT-3.1.2-4]. Consequently, the Session Present flag in CONNACK is always
-// set to 0 if Clean Start is set to 1.
+/// If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST
+/// discard any existing Session and start a new Session.
 #[async_std::test]
-async fn mqtt_3_1_2_4() {}
+async fn mqtt_3_1_2_4() {
+    let server = TestServer::prepare(Default::default()).await;
+    let mut stream = server.create_client().await.unwrap();
+    server.stop().await;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// If a CONNECT packet is received with Clean Start set to 0 and there is
-// a Session associated with the Client Identifier, the Server MUST resume
-// communications with the Client based on state from the existing Session
-// [MQTT-3.1.2-5]. If a CONNECT packet is received with Clean Start set to
-// 0 and there is no Session associated with the Client Identifier, the Server
-//   MUST create a new Session [MQTT-3.1.2-6].
+/// If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated
+/// with the Client Identifier, the Server MUST resume communications with the Client based on
+/// state from the existing Session.
 #[async_std::test]
-async fn mqtt_3_1_2_5() {}
+async fn mqtt_3_1_2_5() {
+    let server = TestServer::prepare(Default::default()).await;
+    let mut stream = server.create_client().await.unwrap();
+    server.stop().await;
+}
 
+///////////////////////////////////////////////////////////////////////////////
+/// If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated
+/// with the Client Identifier, the Server MUST create a new Session.
+#[async_std::test]
+async fn mqtt_3_1_2_6() {
+    let server = TestServer::prepare(Default::default()).await;
+    let mut stream = server.create_client().await.unwrap();
+    server.stop().await;
+}
 ///////////////////////////////////////////////////////////////////////////////
 // The Server MUST perform the processing of Clean Start that is described in
 // section 3.1.2.4 [MQTT-3.1.4-4]
 // Aggregation of:
-// - [MQTT-3.1.2-4]: mqtt_3_1_2_5()
-// - [MQTT-3.1.2-5]
+// - [MQTT-3.1.2-4]: mqtt_3_1_2_4()
+// - [MQTT-3.1.2-5]: mqtt_3_1_2_5()
+// - [MQTT-3.1.2-6]: mqtt_3_1_2_6()
