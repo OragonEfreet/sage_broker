@@ -4,9 +4,10 @@
   - [ ] In tests utils, assert an invalid packet is, indeed, invalid
 - [ ] MQTT Server Conformance Clause
   - [ ] ! CONNECT Actions
+    - [ ] MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing a 0x00 (Success) Reason Code.
+    - [ ] MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the Client after the CONNECT packet except AUTH packets.
     - [ ] MQTT 3.1.4.4: The Server MUST perform the processing of Clean Start.
-      - [ ] Give Sessions its own struct
-      - [ ] A Session must have access to its Peer
+      - [ ] Manage clean start
       - [X] Refactor
         - [X] Make Command Loop return both receiver and sessions
         - [X] Get rid of Broker
@@ -16,8 +17,8 @@
         - [X] Get rid of explicit waiters
         - [X] Get rid of the bind function
         - [X] Get rid of the run function
-    - [ ] MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing a 0x00 (Success) Reason Code.
-    - [ ] MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the Client after the CONNECT packet except AUTH packets.
+      - [X] A Session must have access to its Peer
+      - [X] Give Sessions its own struct
     - [X] MQTT-3.1.4-3: If the ClientID represents a Client already connected to the Server, the Server sends a DISCONNECT packet to the existing Client with Reason Code of 0x8E (Session taken over) as described in section 4.13 and MUST close the Network Connection of the existing Client.
     - [X] MQTT-3.1.4-2: The Server MAY check that the contents of the CONNECT packet meet any further restrictions and SHOULD perform authentication and authorization checks. If any of these checks fail, it MUST close the Network Connection.
     - [X] MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the format described in section 3.1 and close the Network Connection if it does not match.

@@ -7,6 +7,7 @@ mod broker_settings;
 mod command;
 mod peer;
 mod session;
+mod sessions;
 mod treat;
 mod trigger;
 
@@ -19,6 +20,7 @@ use futures::channel::mpsc;
 use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::Session;
+pub use sessions::Sessions;
 pub use trigger::Trigger;
 
 type CommandSender = mpsc::UnboundedSender<Command>;

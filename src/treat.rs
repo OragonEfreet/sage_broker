@@ -1,6 +1,6 @@
-use crate::{BrokerSettings, Peer, Session, Trigger};
+use crate::{BrokerSettings, Peer, Session, Sessions, Trigger};
 use async_std::sync::{Arc, RwLock};
-use log::{debug, error, info};
+use log::{debug, error};
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode};
 
 pub enum TreatAction {
@@ -12,7 +12,7 @@ pub enum TreatAction {
 
 pub async fn treat(
     settings: &Arc<BrokerSettings>,
-    sessions: &mut Vec<Arc<Session>>,
+    sessions: &mut Sessions,
     packet: Packet,
     source: &Arc<RwLock<Peer>>,
     shutdown: &Trigger,
@@ -47,7 +47,7 @@ pub async fn treat(
 
 async fn treat_connect(
     settings: &Arc<BrokerSettings>,
-    sessions: &mut Vec<Arc<Session>>,
+    sessions: &mut Sessions,
     connect: Connect,
     peer: &Arc<RwLock<Peer>>,
 ) -> TreatAction {
@@ -59,31 +59,34 @@ async fn treat_connect(
 
     if connack.reason_code == ReasonCode::Success {
         // Session creation/overtaking
-
-        // We search, in any other aleady existing sessions, if the name is
-        // already taken. If so, we extract the client.
-        let client = {
-            // If a session exists for the same client id
-            if let Some(index) = sessions.iter().position(|c| c.id == client_id) {
-                let client = sessions.swap_remove(index); // We take it
-
-                // If the session already has a peer
-                if let Some(peer) = client.peer.upgrade() {
-                    let packet = Disconnect {
-                        reason_code: ReasonCode::SessionTakenOver,
-                        ..Default::default()
-                    };
-                    peer.write().await.send_close(packet.into()).await;
+        // First, we get the may be existing session from the db:
+        let session = {
+            if let Some(session) = sessions.take(&client_id) {
+                {
+                    let mut session = session.write().await; // We take the session for writing
+                                                             // If the session already has a peer, we will notify them
+                    if let Some(peer) = session.peer.upgrade() {
+                        peer.write()
+                            .await
+                            .send_close(
+                                Disconnect {
+                                    reason_code: ReasonCode::SessionTakenOver,
+                                    ..Default::default()
+                                }
+                                .into(),
+                            )
+                            .await;
+                    }
+                    session.peer = Arc::downgrade(peer);
                 }
-                client
+                session
             } else {
-                Arc::new(Session::new(&client_id, peer.clone()))
+                let id = client_id.clone();
+                let peer = Arc::downgrade(peer);
+                Arc::new(RwLock::new(Session { id, peer }))
             }
         };
-
-        // Now we create the new client and push it into the collection.
-        sessions.push(client.clone());
-        info!("New client: {}", client.id);
+        sessions.add(session);
 
         TreatAction::Respond(connack.into())
     } else {

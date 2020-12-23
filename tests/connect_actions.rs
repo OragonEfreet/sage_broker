@@ -10,7 +10,6 @@ mod utils;
 use utils::TestServer;
 
 ///////////////////////////////////////////////////////////////////////////////
-/// REQUIREMENT
 /// > If the Server does not receive a CONNECT packet within a reasonable amount
 /// > of time after the Network Connection is established
 /// > the Server SHOULD close the Network Connection.
@@ -40,12 +39,6 @@ async fn connect_timeout() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// Requirements:
-/// The Server MUST validate that the CONNECT packet matches the format
-/// described in section 3.1 and close the Network Connection if it does not
-/// match [MQTT-3.1.4-1].
-/// The Server MAY send a CONNACK with a Reason Code of 0x80 or greater as
-/// described in section 4.13 before closing the Network Connection.
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
     let server = TestServer::prepare(BrokerSettings {
