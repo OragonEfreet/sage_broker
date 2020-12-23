@@ -1,6 +1,6 @@
 use crate::{
     treat::{treat, TreatAction},
-    BrokerSettings, Command, CommandReceiver, Peer, Sessions, Trigger,
+    BrokerSettings, Command, CommandReceiver, Peer, SessionsBackEnd, Trigger,
 };
 use async_std::{
     prelude::*,
@@ -18,12 +18,15 @@ use sage_mqtt::Packet;
 /// tasks. Meaning when all peers are dropped and port listenning is stopped
 /// The command loop ends.
 /// Eventually, this task may be a spawner for other tasks
-pub async fn command_loop(
-    mut sessions: Sessions,
+pub async fn command_loop<B>(
+    mut sessions: B,
     settings: Arc<BrokerSettings>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
-) -> (Sessions, CommandReceiver) {
+) -> (B, CommandReceiver)
+where
+    B: SessionsBackEnd,
+{
     info!("Start command loop");
     while let Some(command) = from_command_channel.next().await {
         // Currently can only be Command::Control
@@ -36,13 +39,15 @@ pub async fn command_loop(
     (sessions, from_command_channel)
 }
 
-async fn control_packet(
+async fn control_packet<B>(
     settings: &Arc<BrokerSettings>,
-    sessions: &mut Sessions,
+    sessions: &mut B,
     packet: Packet,
     source: Arc<RwLock<Peer>>,
     shutdown: &Trigger,
-) {
+) where
+    B: SessionsBackEnd,
+{
     match treat(&settings, sessions, packet, &source, shutdown).await {
         TreatAction::Respond(packet) => source.write().await.send(packet).await,
         TreatAction::RespondAndDisconnect(packet) => source.write().await.send_close(packet).await,

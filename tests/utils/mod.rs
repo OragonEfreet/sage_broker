@@ -5,7 +5,7 @@ use async_std::{
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
-use sage_broker::{service, BrokerSettings, Trigger};
+use sage_broker::{service, BrokerSettings, Sessions, Trigger};
 use sage_mqtt::Packet;
 use std::time::Duration;
 
@@ -90,7 +90,7 @@ pub async fn send_waitback(
 async fn run_server(listener: TcpListener, settings: Arc<BrokerSettings>, shutdown: Trigger) {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
-        Default::default(),
+        Sessions::default(),
         settings.clone(),
         command_receiver,
         shutdown.clone(),

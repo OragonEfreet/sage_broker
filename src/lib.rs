@@ -8,6 +8,7 @@ mod command;
 mod peer;
 mod session;
 mod sessions;
+mod sessions_back_end;
 mod treat;
 mod trigger;
 
@@ -21,6 +22,7 @@ use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::Session;
 pub use sessions::Sessions;
+pub use sessions_back_end::SessionsBackEnd;
 pub use trigger::Trigger;
 
 type CommandSender = mpsc::UnboundedSender<Command>;

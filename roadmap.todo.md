@@ -7,7 +7,7 @@
     - [ ] MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing a 0x00 (Success) Reason Code.
     - [ ] MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the Client after the CONNECT packet except AUTH packets.
     - [ ] MQTT 3.1.4.4: The Server MUST perform the processing of Clean Start.
-      - [ ] The Sessions database must be shared. Command Loop should manipulate an Arc<RwLock<Sessions>> or an Arc<Session> with interior mutability
+      - [ ] Templatize the Sessions struct, with a trait like "SessionsBackEnd"
       - [ ] MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST discard any existing Session and start a new Session.
       - [ ] MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated with the Client Identifier, the Server MUST resume communications with the Client based on state from the existing Session.
       - [ ] MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated with the Client Identifier, the Server MUST create a new Session.

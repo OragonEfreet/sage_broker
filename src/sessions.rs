@@ -1,4 +1,4 @@
-use crate::Session;
+use crate::{Session, SessionsBackEnd};
 use async_std::{
     sync::{Arc, RwLock},
     task,
@@ -10,10 +10,10 @@ pub struct Sessions {
     db: Vec<Arc<RwLock<Session>>>,
 }
 
-impl Sessions {
+impl SessionsBackEnd for Sessions {
     /// Searches for the Session at given index and returns it.
     /// If `take`  is set, the session will be extracted from the database
-    pub fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
+    fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
         if let Some(index) = self
             .db
             .iter()
@@ -26,7 +26,7 @@ impl Sessions {
     }
 
     /// Add the given session into the database
-    pub fn add(&mut self, session: Arc<RwLock<Session>>) {
+    fn add(&mut self, session: Arc<RwLock<Session>>) {
         self.db.push(session);
     }
 }
