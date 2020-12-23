@@ -7,7 +7,9 @@
     - [ ] MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing a 0x00 (Success) Reason Code.
     - [ ] MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the Client after the CONNECT packet except AUTH packets.
     - [ ] MQTT 3.1.4.4: The Server MUST perform the processing of Clean Start.
-      - [ ] Manage clean start
+      - [ ] MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST discard any existing Session and start a new Session.
+      - [ ] MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated with the Client Identifier, the Server MUST resume communications with the Client based on state from the existing Session.
+      - [ ] MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated with the Client Identifier, the Server MUST create a new Session.
       - [X] Refactor
         - [X] Make Command Loop return both receiver and sessions
         - [X] Get rid of Broker
@@ -81,7 +83,6 @@
   - [ ] MQTT-3.1.2-1: The protocol name MUST be the UTF-8 String "MQTT". If the Server does not want to accept the CONNECT, and wishes to reveal that it is an MQTT Server it MAY send a CONNACK packet with Reason Code of 0x84 (Unsupported Protocol Version), and then it MUST close the Network Connection.
   - [ ] MQTT-3.1.2-2: If the Protocol Version is not 5 and the Server does not want to accept the CONNECT packet, the Server MAY send a CONNACK packet with Reason Code 0x84 (Unsupported Protocol Version) and then MUST close the Network Connection
   - [ ] MQTT-3.1.2-3: The Server MUST validate that the reserved flag in the CONNECT packet is set to 0.
-  - [ ] MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated with the Client Identifier, the Server MUST create a new Session.
   - [ ] MQTT-3.1.2-7: If the Will Flag is set to 1 this indicates that, a Will Message MUST be stored on the Server and associated with the Session.
   - [ ] MQTT-3.1.2-8: The Will Message MUST be published after the Network Connection is subsequently closed and either the Will Delay Interval has elapsed or the Session ends, unless the Will Message has been deleted by the Server on receipt of a DISCONNECT packet with Reason Code 0x00 (Normal disconnection) or a new Network Connection for the ClientID is opened before the Will Delay Interval has elapsed.
   - [ ] MQTT-3.1.2-9: If the Will Flag is set to 1, the Will QoS and Will Retain fields in the Connect Flags will be used by the Server, and the Will Properties, Will Topic and Will Message fields MUST be present in the Payload.
@@ -261,16 +262,14 @@
   - [ ] MQTT-2.2.1-5: A PUBACK, PUBREC, PUBREL, or PUBCOMP packet MUST contain the same Packet Identifier as the PUBLISH packet that was originally sent.
   - [ ] MQTT-2.2.1-6: A SUBACK and UNSUBACK MUST contain the Packet Identifier that was used in the corresponding SUBSCRIBE and UNSUBSCRIBE packet respectively.
   - [ ] MQTT-2.2.2-1: If there are no properties, this MUST be indicated by including a Property Length of zero.
+  - [ ] ! PUBREC Actions
+    - [ ] MQTT-3.5.2-1: The Client or Server sending the PUBREC packet MUST use one of the PUBREC Reason Codes.
+    - [ ] MQTT-3.5.2-2: The sender MUST NOT send this property if it would increase the size of the PUBREC packet beyond the Maximum Packet Size specified by the receiver.
+    - [ ] MQTT-3.5.2-3: The sender MUST NOT send this property if it would increase the size of the PUBREC packet beyond the Maximum Packet Size specified by the receiver.
+  - [ ] ! PUBREL Actions
+    - [ ] MQTT-3.6.1-1: Bits 3,2,1 and 0 of the Fixed Header in the PUBREL packet are reserved and MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed and close the Network Connection.
+    - [ ] MQTT-3.6.2-1: The Client or Server sending the PUBREL packet MUST use one of the PUBREL Reason Codes.
+    - [ ] MQTT-3.6.2-2: The sender MUST NOT send this Property if it would increase the size of the PUBREL packet beyond the Maximum Packet Size specified by the receiver.
+    - [ ] MQTT-3.6.2-3: The sender MUST NOT send this property if it would increase the size of the PUBREL packet beyond the Maximum Packet Size specified by the receiver.
   - [X] ! PINGREQ Actions
     - [X] MQTT-3.12.4-1: The Server MUST send a PINGRESP packet in response to a PINGREQ packet.
-  - [X] MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated with the Client Identifier, the Server MUST resume communications with the Client based on state from the existing Session.
-  - [X] MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST discard any existing Session and start a new Session.
-  - [X] ! PUBREC Actions
-    - [X] MQTT-3.5.2-1: The Client or Server sending the PUBREC packet MUST use one of the PUBREC Reason Codes.
-    - [X] MQTT-3.5.2-2: The sender MUST NOT send this property if it would increase the size of the PUBREC packet beyond the Maximum Packet Size specified by the receiver.
-    - [X] MQTT-3.5.2-3: The sender MUST NOT send this property if it would increase the size of the PUBREC packet beyond the Maximum Packet Size specified by the receiver.
-  - [X] ! PUBREL Actions
-    - [X] MQTT-3.6.1-1: Bits 3,2,1 and 0 of the Fixed Header in the PUBREL packet are reserved and MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed and close the Network Connection.
-    - [X] MQTT-3.6.2-1: The Client or Server sending the PUBREL packet MUST use one of the PUBREL Reason Codes.
-    - [X] MQTT-3.6.2-2: The sender MUST NOT send this Property if it would increase the size of the PUBREL packet beyond the Maximum Packet Size specified by the receiver.
-    - [X] MQTT-3.6.2-3: The sender MUST NOT send this property if it would increase the size of the PUBREL packet beyond the Maximum Packet Size specified by the receiver.
