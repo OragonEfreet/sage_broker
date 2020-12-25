@@ -7,7 +7,7 @@ use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::{Duration, Instant};
 
 mod utils;
-use utils::TestServer;
+use utils::{client, server, TIMEOUT_DELAY};
 
 ///////////////////////////////////////////////////////////////////////////////
 /// > If the Server does not receive a CONNECT packet within a reasonable amount
@@ -15,12 +15,12 @@ use utils::TestServer;
 /// > the Server SHOULD close the Network Connection.
 #[async_std::test]
 async fn connect_timeout() {
-    let server = TestServer::prepare(BrokerSettings {
-        keep_alive: utils::TIMEOUT_DELAY,
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
-    let mut stream = server.create_client().await.unwrap();
+    let mut stream = client::spawn(&local_addr).await.unwrap();
 
     let now = Instant::now();
     let delay_with_tolerance = (utils::TIMEOUT_DELAY as f32 * 1.5) as u64;
@@ -35,23 +35,23 @@ async fn connect_timeout() {
     }
 
     assert!(now.elapsed().as_secs() >= delay_with_tolerance);
-    server.stop().await;
+    server::stop(shutdown, server).await;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
-    let server = TestServer::prepare(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: utils::TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
-    let mut stream = server.create_client().await.unwrap();
+    let mut stream = client::spawn(&local_addr).await.unwrap();
 
     // Send an invalid connect packet and wait for an immediate disconnection
     // from the server.
     if let Some(packet) =
-        utils::send_waitback(&mut stream, Packet::Connect(Default::default()), true).await
+        client::send_waitback(&mut stream, Packet::Connect(Default::default()), true).await
     {
         assert!(matches!(packet, Packet::ConnAck(_)));
         if let Packet::ConnAck(packet) = packet {
@@ -59,7 +59,7 @@ async fn mqtt_3_1_4_1() {
         }
     }
 
-    server.stop().await;
+    server::stop(shutdown, server).await;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -103,19 +103,19 @@ async fn mqtt_3_1_4_2() {
     ];
 
     for (settings, connect, reason_code) in test_collection {
-        let server = TestServer::prepare(settings).await;
-        let mut stream = server.create_client().await.unwrap();
+        let (_, server, local_addr, shutdown) = server::spawn(settings).await;
+        let mut stream = client::spawn(&local_addr).await.unwrap();
 
         // Send an unsupported connect packet and wait for an immediate disconnection
         // from the server.
-        if let Some(packet) = utils::send_waitback(&mut stream, connect.into(), false).await {
+        if let Some(packet) = client::send_waitback(&mut stream, connect.into(), false).await {
             if let Packet::ConnAck(packet) = packet {
                 assert_eq!(packet.reason_code, reason_code);
             } else {
                 panic!("Packet should be ConnAck");
             }
         }
-        server.stop().await;
+        server::stop(shutdown, server).await;
     }
 }
 
@@ -126,12 +126,12 @@ async fn mqtt_3_1_4_2() {
 /// the Network Connection of the existing Client [MQTT-3.1.4-3]
 #[async_std::test]
 async fn mqtt_3_1_4_3() {
-    let server = TestServer::prepare(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: utils::TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
-    let mut stream = server.create_client().await.unwrap();
+    let mut stream = client::spawn(&local_addr).await.unwrap();
 
     ////////////////////////////////////////////////////////////////////////////
     // Using the first client, we send a Connect packet and wait for the ConnAck
@@ -141,7 +141,7 @@ async fn mqtt_3_1_4_3() {
     };
 
     // By unwrapping we ensure to panic! is the server disconnected
-    if let Packet::ConnAck(packet) = utils::send_waitback(&mut stream, connect.into(), false)
+    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into(), false)
         .await
         .unwrap()
     {
@@ -179,7 +179,7 @@ async fn mqtt_3_1_4_3() {
     ////////////////////////////////////////////////////////////////////////////
     // Meanwhile, we connect with a new connexion and the same client. This
     // must generate a Disconnect packet recevied by the first connection.
-    let mut stream = server.create_client().await.unwrap();
+    let mut stream = client::spawn(&local_addr).await.unwrap();
     // Send a new connect packet
     let packet = Packet::Connect(Connect {
         client_id: Some("Suzuki".into()),
@@ -195,7 +195,7 @@ async fn mqtt_3_1_4_3() {
         panic!(message);
     }
 
-    server.stop().await;
+    server::stop(shutdown, server).await;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -203,9 +203,9 @@ async fn mqtt_3_1_4_3() {
 /// discard any existing Session and start a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
-    let server = TestServer::prepare(Default::default()).await;
-    let _stream = server.create_client().await.unwrap();
-    server.stop().await;
+    let (_, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let _stream = client::spawn(&local_addr).await.unwrap();
+    server::stop(shutdown, server).await;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -214,9 +214,9 @@ async fn mqtt_3_1_2_4() {
 /// state from the existing Session.
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
-    let server = TestServer::prepare(Default::default()).await;
-    let _stream = server.create_client().await.unwrap();
-    server.stop().await;
+    let (_, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let _stream = client::spawn(&local_addr).await.unwrap();
+    server::stop(shutdown, server).await;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,9 +224,9 @@ async fn mqtt_3_1_2_5() {
 /// with the Client Identifier, the Server MUST create a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
-    let server = TestServer::prepare(Default::default()).await;
-    let _stream = server.create_client().await.unwrap();
-    server.stop().await;
+    let (_, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let _stream = client::spawn(&local_addr).await.unwrap();
+    server::stop(shutdown, server).await;
 }
 ///////////////////////////////////////////////////////////////////////////////
 // The Server MUST perform the processing of Clean Start that is described in

@@ -24,9 +24,10 @@ pub use session::Session;
 pub use sessions::Sessions;
 pub use sessions_back_end::SessionsBackEnd;
 pub use trigger::Trigger;
-
-type CommandSender = mpsc::UnboundedSender<Command>;
-type CommandReceiver = mpsc::UnboundedReceiver<Command>;
+/// bim
+pub type CommandSender = mpsc::UnboundedSender<Command>;
+/// bam
+pub type CommandReceiver = mpsc::UnboundedReceiver<Command>;
 
 type PacketReceiver = mpsc::UnboundedReceiver<Packet>;
 type PacketSender = mpsc::UnboundedSender<Packet>;

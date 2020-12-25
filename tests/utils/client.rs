@@ -1,10 +1,26 @@
 use crate::utils::TIMEOUT_DELAY;
 use async_std::{
     io::{self, prelude::*, Cursor, ErrorKind},
-    net::TcpStream,
+    net::{SocketAddr, TcpStream},
+    task,
 };
 use sage_mqtt::Packet;
 use std::time::Duration;
+
+// Create a valid TcpStream client for the current server
+pub async fn spawn(local_addr: &SocketAddr) -> Option<TcpStream> {
+    // Makes 5 connexion attemps, every 1 second until a connexion is made, or
+    // panic
+    for _ in 0u8..5u8 {
+        if let Ok(stream) = TcpStream::connect(*local_addr).await {
+            return Some(stream);
+        }
+
+        task::sleep(Duration::from_secs(1)).await;
+    }
+
+    None
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Sends the given packet and wait for the next response from the server.
