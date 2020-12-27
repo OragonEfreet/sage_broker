@@ -1,10 +1,12 @@
 use crate::Session;
 use async_std::sync::{Arc, RwLock};
+use async_trait::async_trait;
 
 /// Pouet
+#[async_trait]
 pub trait SessionsBackEnd {
     /// pif
-    fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>>;
+    async fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>>;
     ///paf
-    fn add(&mut self, session: Arc<RwLock<Session>>);
+    async fn add(&mut self, session: Arc<RwLock<Session>>);
 }

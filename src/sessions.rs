@@ -3,6 +3,7 @@ use async_std::{
     sync::{Arc, RwLock},
     task,
 };
+use async_trait::async_trait;
 
 /// Holds sessions manipulated from the Command Loop
 #[derive(Default)]
@@ -10,10 +11,11 @@ pub struct Sessions {
     db: Vec<Arc<RwLock<Session>>>,
 }
 
+#[async_trait]
 impl SessionsBackEnd for Sessions {
     /// Searches for the Session at given index and returns it.
     /// If `take`  is set, the session will be extracted from the database
-    fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
+    async fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
         if let Some(index) = self
             .db
             .iter()
@@ -26,7 +28,7 @@ impl SessionsBackEnd for Sessions {
     }
 
     /// Add the given session into the database
-    fn add(&mut self, session: Arc<RwLock<Session>>) {
+    async fn add(&mut self, session: Arc<RwLock<Session>>) {
         self.db.push(session);
     }
 }

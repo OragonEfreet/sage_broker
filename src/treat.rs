@@ -67,7 +67,7 @@ where
         // Session creation/overtaking
         // First, we get the may be existing session from the db:
         let session = {
-            if let Some(session) = sessions.take(&client_id) {
+            if let Some(session) = sessions.take(&client_id).await {
                 {
                     let mut session = session.write().await; // We take the session for writing
                                                              // If the session already has a peer, we will notify them
@@ -92,7 +92,7 @@ where
                 Arc::new(RwLock::new(Session { id, peer }))
             }
         };
-        sessions.add(session);
+        sessions.add(session).await;
 
         TreatAction::Respond(connack.into())
     } else {
