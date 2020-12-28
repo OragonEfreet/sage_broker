@@ -7,7 +7,7 @@ use sage_broker::{Session, SessionsBackEnd};
 
 type DatabaseT = Vec<Arc<RwLock<Session>>>;
 /// Holds sessions manipulated from the Command Loop
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct TestSessions {
     pub db: Arc<RwLock<DatabaseT>>,
 }

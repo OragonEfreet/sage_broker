@@ -8,7 +8,7 @@ use utils::{client, server};
 /// [MQTT-3.12.4-1].
 #[async_std::test]
 async fn mqtt_3_12_4_1() {
-    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         ..Default::default()
     })
     .await;

@@ -15,7 +15,7 @@ use utils::{client, server, TIMEOUT_DELAY};
 /// > the Server SHOULD close the Network Connection.
 #[async_std::test]
 async fn connect_timeout() {
-    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     })
@@ -41,7 +41,7 @@ async fn connect_timeout() {
 ///////////////////////////////////////////////////////////////////////////////
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
-    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: utils::TIMEOUT_DELAY,
         ..Default::default()
     })
@@ -103,7 +103,7 @@ async fn mqtt_3_1_4_2() {
     ];
 
     for (settings, connect, reason_code) in test_collection {
-        let (_, server, local_addr, shutdown) = server::spawn(settings).await;
+        let (_, _, server, local_addr, shutdown) = server::spawn(settings).await;
         let mut stream = client::spawn(&local_addr).await.unwrap();
 
         // Send an unsupported connect packet and wait for an immediate disconnection
@@ -126,7 +126,7 @@ async fn mqtt_3_1_4_2() {
 /// the Network Connection of the existing Client [MQTT-3.1.4-3]
 #[async_std::test]
 async fn mqtt_3_1_4_3() {
-    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: utils::TIMEOUT_DELAY,
         ..Default::default()
     })
@@ -203,8 +203,86 @@ async fn mqtt_3_1_4_3() {
 /// discard any existing Session and start a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
-    let (_, server, local_addr, shutdown) = server::spawn(Default::default()).await;
-    let _stream = client::spawn(&local_addr).await.unwrap();
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+
+    let client_id = String::from("Jaden");
+
+    // First, we connect a client with a fixed id and wait for ACK
+    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let stream_addr = stream.local_addr().unwrap();
+
+    if let Packet::ConnAck(packet) = client::send_waitback(
+        &mut stream,
+        Connect {
+            client_id: Some(client_id.clone()),
+            ..Default::default()
+        }
+        .into(),
+        false,
+    )
+    .await
+    .unwrap()
+    {
+        assert_eq!(packet.reason_code, ReasonCode::Success);
+        assert!(packet.assigned_client_id.is_none());
+    } else {
+        panic!("Invalid packet type sent after Connect");
+    }
+
+    // Search db for the current connexion
+    {
+        let db = sessions.db.read().await;
+        assert_eq!(db.len(), 1);
+        let session = db[0].read().await;
+        assert_eq!(session.id, client_id);
+        if let Some(peer) = session.peer.upgrade() {
+            let peer = peer.read().await;
+            assert_eq!(*peer.addr(), stream_addr);
+        } else {
+            panic!("No Peer in session");
+        }
+    }
+
+    // Let's do the same, forcing clean start to 1
+    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let stream_addr = stream.local_addr().unwrap();
+
+    if let Packet::ConnAck(packet) = client::send_waitback(
+        &mut stream,
+        Connect {
+            client_id: Some(client_id.clone()),
+            clean_start: true,
+            ..Default::default()
+        }
+        .into(),
+        false,
+    )
+    .await
+    .unwrap()
+    {
+        assert_eq!(packet.reason_code, ReasonCode::Success);
+        assert!(packet.assigned_client_id.is_none());
+    } else {
+        panic!("Invalid packet type sent after Connect");
+    }
+
+    // TODO Assert the first stream is dead
+
+    // Search db for the current connexion
+    {
+        let db = sessions.db.read().await;
+        assert_eq!(db.len(), 1);
+        let session = db[0].read().await;
+        assert_eq!(session.id, client_id);
+        if let Some(peer) = session.peer.upgrade() {
+            let peer = peer.read().await;
+            assert_eq!(*peer.addr(), stream_addr);
+        // TODO compare de session identifiers to be the same
+        } else {
+            panic!("No Peer in session");
+        }
+    }
+
     server::stop(shutdown, server).await;
 }
 
@@ -214,7 +292,7 @@ async fn mqtt_3_1_2_4() {
 /// state from the existing Session.
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
-    let (_, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, _, server, local_addr, shutdown) = server::spawn(Default::default()).await;
     let _stream = client::spawn(&local_addr).await.unwrap();
     server::stop(shutdown, server).await;
 }
@@ -224,7 +302,7 @@ async fn mqtt_3_1_2_5() {
 /// with the Client Identifier, the Server MUST create a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
-    let (_, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, _, server, local_addr, shutdown) = server::spawn(Default::default()).await;
     let _stream = client::spawn(&local_addr).await.unwrap();
     server::stop(shutdown, server).await;
 }

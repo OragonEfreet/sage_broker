@@ -11,6 +11,7 @@ pub async fn spawn(
     settings: BrokerSettings,
 ) -> (
     Arc<BrokerSettings>,
+    TestSessions,
     JoinHandle<(TestSessions, CommandReceiver)>,
     SocketAddr,
     Trigger,
@@ -20,9 +21,16 @@ pub async fn spawn(
     let settings = Arc::new(settings);
 
     let shutdown = Trigger::default();
-    let service_task = task::spawn(run_server(listener, settings.clone(), shutdown.clone()));
 
-    (settings, service_task, local_addr, shutdown)
+    let sessions = TestSessions::default();
+    let service_task = task::spawn(run_server(
+        listener,
+        sessions.clone(),
+        settings.clone(),
+        shutdown.clone(),
+    ));
+
+    (settings, sessions, service_task, local_addr, shutdown)
 }
 
 pub async fn stop(
@@ -35,12 +43,13 @@ pub async fn stop(
 
 async fn run_server(
     listener: TcpListener,
+    sessions: TestSessions,
     settings: Arc<BrokerSettings>,
     shutdown: Trigger,
 ) -> (TestSessions, CommandReceiver) {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
-        TestSessions::default(),
+        sessions,
         settings.clone(),
         command_receiver,
         shutdown.clone(),
