@@ -59,11 +59,14 @@ where
 {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
-    let client_id = connect.client_id.clone();
     let connack = settings.acknowledge_connect(&connect);
-    let client_id = connack.assigned_client_id.clone().or(client_id).unwrap();
 
     if connack.reason_code == ReasonCode::Success {
+        let client_id = connack
+            .assigned_client_id
+            .clone()
+            .or(connect.client_id)
+            .unwrap();
         // Session creation/overtaking
         // First, we get the may be existing session from the db:
         let session = {

@@ -54,3 +54,23 @@ pub async fn send_waitback(
         }
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+/// Wait for the given client stream to be closed by the sever.
+/// This version does not care about how the server closes the stream and
+/// just wait for an Ok(0) from stream.read().
+/// More fine grained function could test for no error or DISCONNECT packet
+pub async fn wait_close(stream: &mut TcpStream) -> bool {
+    loop {
+        let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
+        let mut buf = vec![0u8; 1024];
+        match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
+            Err(e) => match e.kind() {
+                ErrorKind::TimedOut => return false,
+                _ => continue,
+            },
+            Ok(0) => return true,
+            _ => continue,
+        }
+    }
+}

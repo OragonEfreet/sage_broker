@@ -167,8 +167,12 @@ async fn mqtt_3_1_4_3() {
             Ok(_) => {
                 let mut buf = Cursor::new(buf);
                 let packet = Packet::decode(&mut buf).await.unwrap();
-                if let Packet::Disconnect(_) = packet {
-                    None
+                if let Packet::Disconnect(disconnect) = packet {
+                    if disconnect.reason_code != ReasonCode::SessionTakenOver {
+                        Some("Reason Code should be SessionTakenOver")
+                    } else {
+                        None
+                    }
                 } else {
                     Some("Incorrect packet type sent by server")
                 }
@@ -203,6 +207,7 @@ async fn mqtt_3_1_4_3() {
 /// discard any existing Session and start a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
+    pretty_env_logger::init();
     let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
 
     let client_id = String::from("Jaden");
@@ -237,13 +242,13 @@ async fn mqtt_3_1_2_4() {
     };
 
     // Let's do the same, forcing clean start to 1
-    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let mut new_stream = client::spawn(&local_addr).await.unwrap();
 
     if let Packet::ConnAck(packet) = client::send_waitback(
-        &mut stream,
+        &mut new_stream,
         Connect {
             client_id: Some(client_id.clone()),
-            clean_start: true,
+            clean_start: true, // Set Clean Start to 1. Session MUST be new
             ..Default::default()
         }
         .into(),
@@ -258,18 +263,16 @@ async fn mqtt_3_1_2_4() {
         panic!("Invalid packet type sent after Connect");
     }
 
-    // TODO Assert the first stream is dead
-    // We must get a non-timeout error (IO) or 0
-    let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
-    let mut buf = vec![0u8; 1024];
-    let response = io::timeout(delay_with_tolerance, stream.read(&mut buf)).await;
-    println!("RESPONSE: {:?}", response);
+    // The first client must have been disconnected by the server
+    client::wait_close(&mut stream).await;
 
     let db = sessions.db.read().await;
-    assert_eq!(db.len(), 1);
+    assert_eq!(db.len(), 1); // Because previous session was taken over
     let session = db[0].read().await;
+
+    // Test: Client ID must be same but session id must be different
     assert_eq!(session.client_id(), client_id); // This is were client ids are compared
-    assert_eq!(session_id, session.id()); // This is were sessions are compared
+    assert_ne!(session_id, session.id()); // This is were sessions are compared
 
     server::stop(shutdown, server).await;
 }
