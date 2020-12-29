@@ -1,10 +1,7 @@
-use async_std::{
-    io::{self, prelude::*, Cursor, ErrorKind},
-    task,
-};
+use async_std::{io::prelude::*, task};
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 mod utils;
 use utils::{client, server, TIMEOUT_DELAY};
@@ -153,32 +150,10 @@ async fn mqtt_3_1_4_3() {
     ////////////////////////////////////////////////////////////////////////////
     // We spawn a new task which uses the first connection to wait for a
     // Disconnect(SessionTakenOver) packet within the next ten seconds.
-    let wait_dis = task::spawn(async move {
-        let delay_with_tolerance = Duration::from_secs(10);
-        let mut buf = vec![0u8; 1024];
-        let result = io::timeout(delay_with_tolerance, stream.read(&mut buf)).await;
-
-        match result {
-            Err(e) => match e.kind() {
-                ErrorKind::TimedOut => Some("Server did not respond"),
-                _ => Some("IO Error"),
-            },
-            Ok(0) => Some("Server shut down connexion after Connect packet is sent"),
-            Ok(_) => {
-                let mut buf = Cursor::new(buf);
-                let packet = Packet::decode(&mut buf).await.unwrap();
-                if let Packet::Disconnect(disconnect) = packet {
-                    if disconnect.reason_code != ReasonCode::SessionTakenOver {
-                        Some("Reason Code should be SessionTakenOver")
-                    } else {
-                        None
-                    }
-                } else {
-                    Some("Incorrect packet type sent by server")
-                }
-            }
-        }
-    });
+    let wait_dis = task::spawn(client::wait_close(
+        stream,
+        client::CloseWithDisconnect::Ignore,
+    ));
 
     ////////////////////////////////////////////////////////////////////////////
     // Meanwhile, we connect with a new connexion and the same client. This
@@ -264,7 +239,9 @@ async fn mqtt_3_1_2_4() {
     }
 
     // The first client must have been disconnected by the server
-    client::wait_close(&mut stream).await;
+    if let Some(what) = client::wait_close(stream, client::CloseWithDisconnect::Ignore).await {
+        panic!(what);
+    }
 
     let db = sessions.db.read().await;
     assert_eq!(db.len(), 1); // Because previous session was taken over
