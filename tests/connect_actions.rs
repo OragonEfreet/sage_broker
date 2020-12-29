@@ -297,7 +297,7 @@ async fn mqtt_3_1_2_5() {
         String::from(session.client_id())
     };
 
-    // Let's do the same, forcing clean start to 1
+    // Let's do the same, forcing clean start to 0
     let mut new_stream = client::spawn(&local_addr).await.unwrap();
 
     if let Packet::ConnAck(packet) = client::send_waitback(
@@ -343,10 +343,72 @@ async fn mqtt_3_1_2_5() {
 ///////////////////////////////////////////////////////////////////////////////
 /// If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated
 /// with the Client Identifier, the Server MUST create a new Session.
+/// (implicitely: other sessions exist)
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(Default::default()).await;
-    let _stream = client::spawn(&local_addr).await.unwrap();
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+
+    let client_id = String::from("Jaden");
+
+    // First, we connect a client with a fixed id and wait for ACK
+    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let session_id = {
+        if let Packet::ConnAck(packet) = client::send_waitback(
+            &mut stream,
+            Connect {
+                client_id: Some(client_id.clone()),
+                ..Default::default()
+            }
+            .into(),
+            false,
+        )
+        .await
+        .unwrap()
+        {
+            assert_eq!(packet.reason_code, ReasonCode::Success);
+            assert!(packet.assigned_client_id.is_none());
+        } else {
+            panic!("Invalid packet type sent after Connect");
+        }
+
+        // Search db for the current connexion
+        let db = sessions.db.read().await;
+        assert_eq!(db.len(), 1);
+        let session = db[0].read().await;
+        assert_eq!(session.client_id(), client_id);
+        String::from(session.client_id())
+    };
+
+    // Let's do the same, forcing clean start to 0
+    let client_id = String::from("Jarod");
+    let mut new_stream = client::spawn(&local_addr).await.unwrap();
+    if let Packet::ConnAck(packet) = client::send_waitback(
+        &mut new_stream,
+        Connect {
+            client_id: Some(client_id.clone()),
+            clean_start: false, // Set Clean Start to 0.
+            ..Default::default()
+        }
+        .into(),
+        false,
+    )
+    .await
+    .unwrap()
+    {
+        assert_eq!(packet.reason_code, ReasonCode::Success);
+        assert!(packet.assigned_client_id.is_none());
+    } else {
+        panic!("Invalid packet type sent after Connect");
+    }
+
+    let db = sessions.db.read().await;
+    assert_eq!(db.len(), 2); // Because former session has different ID
+    let session = db[0].read().await;
+
+    // Test: Client ID must be same but session id must be different
+    assert_ne!(session.client_id(), client_id); // This is were client ids are compared
+    assert_ne!(session_id, session.id()); // This is were sessions are compared
+
     server::stop(shutdown, server).await;
 }
 ///////////////////////////////////////////////////////////////////////////////
