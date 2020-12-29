@@ -264,8 +264,79 @@ async fn mqtt_3_1_2_4() {
 /// state from the existing Session.
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(Default::default()).await;
-    let _stream = client::spawn(&local_addr).await.unwrap();
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+
+    let client_id = String::from("Jaden");
+
+    // First, we connect a client with a fixed id and wait for ACK
+    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let session_id = {
+        if let Packet::ConnAck(packet) = client::send_waitback(
+            &mut stream,
+            Connect {
+                client_id: Some(client_id.clone()),
+                ..Default::default()
+            }
+            .into(),
+            false,
+        )
+        .await
+        .unwrap()
+        {
+            assert_eq!(packet.reason_code, ReasonCode::Success);
+            assert!(packet.assigned_client_id.is_none());
+        } else {
+            panic!("Invalid packet type sent after Connect");
+        }
+
+        // Search db for the current connexion
+        let db = sessions.db.read().await;
+        assert_eq!(db.len(), 1);
+        let session = db[0].read().await;
+        assert_eq!(session.client_id(), client_id);
+        String::from(session.client_id())
+    };
+
+    // Let's do the same, forcing clean start to 1
+    let mut new_stream = client::spawn(&local_addr).await.unwrap();
+
+    if let Packet::ConnAck(packet) = client::send_waitback(
+        &mut new_stream,
+        Connect {
+            client_id: Some(client_id.clone()),
+            clean_start: false, // Set Clean Start to 0. Session MUST be kept
+            ..Default::default()
+        }
+        .into(),
+        false,
+    )
+    .await
+    .unwrap()
+    {
+        assert_eq!(packet.reason_code, ReasonCode::Success);
+        assert!(packet.assigned_client_id.is_none());
+    } else {
+        panic!("Invalid packet type sent after Connect");
+    }
+
+    // The first client must have been disconnected by the server
+    if let Some(what) = client::wait_close(
+        stream,
+        client::DisconnectPolicy::Force(Some(ReasonCode::SessionTakenOver)),
+    )
+    .await
+    {
+        panic!(what);
+    }
+
+    let db = sessions.db.read().await;
+    assert_eq!(db.len(), 1); // Because previous session was taken over
+    let session = db[0].read().await;
+
+    // Test: Client ID and session ID must be same
+    assert_eq!(session.client_id(), client_id); // This is were client ids are compared
+    assert_eq!(session_id, session.id()); // This is were sessions are compared
+
     server::stop(shutdown, server).await;
 }
 
