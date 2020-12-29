@@ -240,7 +240,7 @@ async fn mqtt_3_1_2_4() {
     // The first client must have been disconnected by the server
     if let Some(what) = client::wait_close(
         stream,
-        client::DisconnectPolicy::Force(Some(ReasonCode::SessionTakenOver)),
+        client::DisconnectPolicy::Ignore(Some(ReasonCode::SessionTakenOver)),
     )
     .await
     {
