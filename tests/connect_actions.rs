@@ -3,8 +3,8 @@ use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::Instant;
 
-mod utils;
-use utils::{client, server, TIMEOUT_DELAY};
+pub mod utils;
+pub use utils::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 /// > If the Server does not receive a CONNECT packet within a reasonable amount
@@ -20,7 +20,7 @@ async fn connect_timeout() {
     let mut stream = client::spawn(&local_addr).await.unwrap();
 
     let now = Instant::now();
-    let delay_with_tolerance = (utils::TIMEOUT_DELAY as f32 * 1.5) as u64;
+    let delay_with_tolerance = (TIMEOUT_DELAY as f32 * 1.5) as u64;
 
     if let Ok(packet) = Packet::decode(&mut stream).await {
         match packet {
@@ -39,7 +39,7 @@ async fn connect_timeout() {
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
-        keep_alive: utils::TIMEOUT_DELAY,
+        keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
@@ -72,7 +72,7 @@ async fn mqtt_3_1_4_2() {
     // Create a set of pairs with a server and an unsupported connect packet.
     // Each one will be tested against an expected ConnAck > 0x80
     let settings = BrokerSettings {
-        keep_alive: utils::TIMEOUT_DELAY,
+        keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     };
     // Vector of (input,output) tests.
@@ -124,7 +124,7 @@ async fn mqtt_3_1_4_2() {
 #[async_std::test]
 async fn mqtt_3_1_4_3() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
-        keep_alive: utils::TIMEOUT_DELAY,
+        keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
@@ -152,7 +152,7 @@ async fn mqtt_3_1_4_3() {
     // Disconnect(SessionTakenOver) packet within the next ten seconds.
     let wait_dis = task::spawn(client::wait_close(
         stream,
-        client::CloseWithDisconnect::Ignore,
+        client::DisconnectPolicy::Ignore(Some(ReasonCode::SessionTakenOver)),
     ));
 
     ////////////////////////////////////////////////////////////////////////////
@@ -182,7 +182,6 @@ async fn mqtt_3_1_4_3() {
 /// discard any existing Session and start a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
-    pretty_env_logger::init();
     let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
 
     let client_id = String::from("Jaden");
@@ -239,7 +238,12 @@ async fn mqtt_3_1_2_4() {
     }
 
     // The first client must have been disconnected by the server
-    if let Some(what) = client::wait_close(stream, client::CloseWithDisconnect::Ignore).await {
+    if let Some(what) = client::wait_close(
+        stream,
+        client::DisconnectPolicy::Force(Some(ReasonCode::SessionTakenOver)),
+    )
+    .await
+    {
         panic!(what);
     }
 

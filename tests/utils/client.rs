@@ -7,6 +7,7 @@ use async_std::{
 use sage_mqtt::{Packet, ReasonCode};
 use std::time::Duration;
 
+///////////////////////////////////////////////////////////////////////////////
 // Create a valid TcpStream client for the current server
 pub async fn spawn(local_addr: &SocketAddr) -> Option<TcpStream> {
     // Makes 5 connexion attemps, every 1 second until a connexion is made, or
@@ -58,24 +59,24 @@ pub async fn send_waitback(
 ///////////////////////////////////////////////////////////////////////////////
 /// Used within `wait_close` to specify how the Disconnect packet behaviour is
 /// expected.
-pub enum CloseWithDisconnect {
+pub enum DisconnectPolicy {
     /// No specific requirement
-    Ignore,
-    /// A Disconnect packet MUST be sent, with any ReasonCode
-    ForceAny,
-    /// A Disconnect packet MUST be sent, with the specified ReasonCode
-    ForceReasonCode(ReasonCode),
+    /// The function will succeed wether a Disconnect packet is sent before close or not
+    /// If a reason code is set, it MUST match
+    Ignore(Option<ReasonCode>),
+    /// A Disconnect packet MUST be sent. If a ReasonCode is set, it MUST match
+    Force(Option<ReasonCode>),
     /// A Disconnect packet must NOT be sent
     Forbid,
 }
 
+///////////////////////////////////////////////////////////////////////////////
 /// Wait for the given client stream to be closed by the sever.
 /// The function can expect/forbid/ignore a disconnect packet prior to closing
 /// using the `disconnect` option.
 /// In case of success, the function returns None. Any error is returns as
 /// an Some(String)
-// TODO current version is incomplete
-pub async fn wait_close(mut stream: TcpStream, disconnect: CloseWithDisconnect) -> Option<String> {
+pub async fn wait_close(mut stream: TcpStream, disconnect: DisconnectPolicy) -> Option<String> {
     let delay_with_tolerance = Duration::from_secs(10);
     let mut buf = vec![0u8; 1024];
 
@@ -87,40 +88,41 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: CloseWithDisconnect) 
         Ok(0) => {
             // Connexion shutdown with no disconnect
             match disconnect {
-                CloseWithDisconnect::Ignore | CloseWithDisconnect::Forbid => None,
-                _ => Some("DISCONNECT packet expected before close"),
+                DisconnectPolicy::Ignore(_) | DisconnectPolicy::Forbid => None,
+                DisconnectPolicy::Force(_) => Some("DISCONNECT packet expected before close"),
             }
         }
         Ok(_) => {
             // DISCONNECT packet sent before shut down
-            if let CloseWithDisconnect::Forbid = disconnect {
+            if let DisconnectPolicy::Forbid = disconnect {
                 Some("Server should have closed with no prior packet")
             } else {
+                // disconnect can only be Ignore of Force(_) here.
+                // In both cases, the optionally received packet MUST be a DISCONNECT
                 let mut buf = Cursor::new(buf);
                 let packet = Packet::decode(&mut buf).await.unwrap();
                 if let Packet::Disconnect(packet) = packet {
                     match disconnect {
-                        CloseWithDisconnect::ForceReasonCode(reason_code) => {
-                            if reason_code == packet.reason_code {
-                                let mut buf = vec![0u8; 1024];
-                                // Here the server MUST close the connection.
-                                // Thus we only expect a Ok(0)
-                                match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await
-                                {
-                                    Err(e) => match e.kind() {
-                                        ErrorKind::TimedOut => {
-                                            Some("Server did not respond after DISCONNECT packet")
-                                        }
-                                        _ => Some("IO Error"),
-                                    },
-                                    Ok(0) => None,
-                                    Ok(_) => Some("Unexpected packet send instead of close"),
-                                }
-                            } else {
-                                Some("Incorrect reason_code sent for DISCONNECT")
+                        DisconnectPolicy::Force(Some(rc)) | DisconnectPolicy::Ignore(Some(rc))
+                            if rc != packet.reason_code =>
+                        {
+                            Some("Incorrect reason_code sent for DISCONNECT")
+                        }
+                        _ => {
+                            let mut buf = vec![0u8; 1024];
+                            // Here the server MUST close the connection.
+                            // Thus we only expect a Ok(0)
+                            match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
+                                Err(e) => match e.kind() {
+                                    ErrorKind::TimedOut => {
+                                        Some("Server did not respond after DISCONNECT packet")
+                                    }
+                                    _ => Some("IO Error"),
+                                },
+                                Ok(0) => None,
+                                Ok(_) => Some("Unexpected packet send instead of close"),
                             }
                         }
-                        _ => None,
                     }
                 } else {
                     Some("Only DISCONNECT packet is allowed before closing")

@@ -1,8 +1,8 @@
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Packet, ReasonCode};
 
-mod utils;
-use utils::{client, server};
+pub mod utils;
+use utils::*;
 
 /// The Server MUST send a PINGRESP packet in response to a PINGREQ packet
 /// [MQTT-3.12.4-1].
