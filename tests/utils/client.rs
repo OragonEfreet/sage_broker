@@ -59,7 +59,7 @@ pub async fn send_waitback(
 ///////////////////////////////////////////////////////////////////////////////
 /// Used within `wait_close` to specify how the Disconnect packet behaviour is
 /// expected.
-pub enum DisconnectPolicy {
+pub enum DisPacket {
     /// No specific requirement
     /// The function will succeed wether a Disconnect packet is sent before close or not
     /// If a reason code is set, it MUST match
@@ -76,7 +76,7 @@ pub enum DisconnectPolicy {
 /// using the `disconnect` option.
 /// In case of success, the function returns None. Any error is returns as
 /// an Some(String)
-pub async fn wait_close(mut stream: TcpStream, disconnect: DisconnectPolicy) -> Option<String> {
+pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<String> {
     let delay_with_tolerance = Duration::from_secs(10);
     let mut buf = vec![0u8; 1024];
 
@@ -88,13 +88,13 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisconnectPolicy) -> 
         Ok(0) => {
             // Connexion shutdown with no disconnect
             match disconnect {
-                DisconnectPolicy::Ignore(_) | DisconnectPolicy::Forbid => None,
-                DisconnectPolicy::Force(_) => Some("DISCONNECT packet expected before close"),
+                DisPacket::Ignore(_) | DisPacket::Forbid => None,
+                DisPacket::Force(_) => Some("DISCONNECT packet expected before close"),
             }
         }
         Ok(_) => {
             // DISCONNECT packet sent before shut down
-            if let DisconnectPolicy::Forbid = disconnect {
+            if let DisPacket::Forbid = disconnect {
                 Some("Server should have closed with no prior packet")
             } else {
                 // disconnect can only be Ignore of Force(_) here.
@@ -103,7 +103,7 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisconnectPolicy) -> 
                 let packet = Packet::decode(&mut buf).await.unwrap();
                 if let Packet::Disconnect(packet) = packet {
                     match disconnect {
-                        DisconnectPolicy::Force(Some(rc)) | DisconnectPolicy::Ignore(Some(rc))
+                        DisPacket::Force(Some(rc)) | DisPacket::Ignore(Some(rc))
                             if rc != packet.reason_code =>
                         {
                             Some("Incorrect reason_code sent for DISCONNECT")

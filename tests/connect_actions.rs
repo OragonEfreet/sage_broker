@@ -1,9 +1,14 @@
-use async_std::{io::prelude::*, task};
+use async_std::{
+    io::prelude::*,
+    net::{SocketAddr, TcpStream},
+    task,
+};
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::Instant;
 
 pub mod utils;
+use utils::client::DisPacket;
 pub use utils::*;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -150,10 +155,8 @@ async fn mqtt_3_1_4_3() {
     ////////////////////////////////////////////////////////////////////////////
     // We spawn a new task which uses the first connection to wait for a
     // Disconnect(SessionTakenOver) packet within the next ten seconds.
-    let wait_dis = task::spawn(client::wait_close(
-        stream,
-        client::DisconnectPolicy::Ignore(Some(ReasonCode::SessionTakenOver)),
-    ));
+    let policy = DisPacket::Ignore(Some(ReasonCode::SessionTakenOver));
+    let wait_dis = task::spawn(client::wait_close(stream, policy));
 
     ////////////////////////////////////////////////////////////////////////////
     // Meanwhile, we connect with a new connexion and the same client. This
@@ -178,6 +181,47 @@ async fn mqtt_3_1_4_3() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// The Server MUST perform the processing of Clean Start that is described in
+// section 3.1.2.4 [MQTT-3.1.4-4]
+// Aggregation of:
+// - [MQTT-3.1.2-4]: mqtt_3_1_2_4()
+// - [MQTT-3.1.2-5]: mqtt_3_1_2_5()
+// - [MQTT-3.1.2-6]: mqtt_3_1_2_6()
+/// This function is used by all three functions to create a client, connect to
+/// it with a given Clean Start option
+async fn mqtt_3_1_4_4_connect(
+    client_id: &str,
+    local_addr: &SocketAddr,
+    clean_start: Option<bool>,
+) -> TcpStream {
+    let connect = if let Some(clean_start) = clean_start {
+        Connect {
+            client_id: Some(client_id.into()),
+            clean_start,
+            ..Default::default()
+        }
+    } else {
+        Connect {
+            client_id: Some(client_id.into()),
+            ..Default::default()
+        }
+    };
+
+    // First, we connect a client with a fixed id and wait for ACK
+    let mut stream = client::spawn(&local_addr).await.unwrap();
+    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into(), false)
+        .await
+        .unwrap()
+    {
+        assert_eq!(packet.reason_code, ReasonCode::Success);
+        assert!(packet.assigned_client_id.is_none());
+    } else {
+        panic!("Invalid packet type sent after Connect");
+    }
+    stream
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST
 /// discard any existing Session and start a new Session.
 #[async_std::test]
@@ -186,64 +230,27 @@ async fn mqtt_3_1_2_4() {
 
     let client_id = String::from("Jaden");
 
-    // First, we connect a client with a fixed id and wait for ACK
-    let mut stream = client::spawn(&local_addr).await.unwrap();
-    let session_id = {
-        if let Packet::ConnAck(packet) = client::send_waitback(
-            &mut stream,
-            Connect {
-                client_id: Some(client_id.clone()),
-                ..Default::default()
-            }
-            .into(),
-            false,
-        )
-        .await
-        .unwrap()
-        {
-            assert_eq!(packet.reason_code, ReasonCode::Success);
-            assert!(packet.assigned_client_id.is_none());
-        } else {
-            panic!("Invalid packet type sent after Connect");
-        }
+    // First, we connect a client with a fixed client_id and wait for ACK
+    let stream = mqtt_3_1_4_4_connect(&client_id, &local_addr, None).await;
 
-        // Search db for the current connexion
+    // Some checks on the state of the current database
+    let session_id = {
         let db = sessions.db.read().await;
-        assert_eq!(db.len(), 1);
+        assert_eq!(db.len(), 1); // We have 1 client exactly
         let session = db[0].read().await;
         assert_eq!(session.client_id(), client_id);
-        String::from(session.client_id())
+        String::from(session.id())
     };
 
     // Let's do the same, forcing clean start to 1
-    let mut new_stream = client::spawn(&local_addr).await.unwrap();
+    mqtt_3_1_4_4_connect(&client_id, &local_addr, Some(true)).await;
 
-    if let Packet::ConnAck(packet) = client::send_waitback(
-        &mut new_stream,
-        Connect {
-            client_id: Some(client_id.clone()),
-            clean_start: true, // Set Clean Start to 1. Session MUST be new
-            ..Default::default()
-        }
-        .into(),
-        false,
-    )
-    .await
-    .unwrap()
-    {
-        assert_eq!(packet.reason_code, ReasonCode::Success);
-        assert!(packet.assigned_client_id.is_none());
-    } else {
-        panic!("Invalid packet type sent after Connect");
-    }
-
-    // The first client must have been disconnected by the server
-    if let Some(what) = client::wait_close(
-        stream,
-        client::DisconnectPolicy::Ignore(Some(ReasonCode::SessionTakenOver)),
-    )
-    .await
-    {
+    // Wait for the first client to be closed by the server, which MUST
+    // happen.
+    // The server may send a disconnect packet, in that case the reason code
+    // must be SessionTakenOver
+    let policy = DisPacket::Ignore(Some(ReasonCode::SessionTakenOver));
+    if let Some(what) = client::wait_close(stream, policy).await {
         panic!(what);
     }
 
@@ -269,63 +276,23 @@ async fn mqtt_3_1_2_5() {
     let client_id = String::from("Jaden");
 
     // First, we connect a client with a fixed id and wait for ACK
-    let mut stream = client::spawn(&local_addr).await.unwrap();
-    let session_id = {
-        if let Packet::ConnAck(packet) = client::send_waitback(
-            &mut stream,
-            Connect {
-                client_id: Some(client_id.clone()),
-                ..Default::default()
-            }
-            .into(),
-            false,
-        )
-        .await
-        .unwrap()
-        {
-            assert_eq!(packet.reason_code, ReasonCode::Success);
-            assert!(packet.assigned_client_id.is_none());
-        } else {
-            panic!("Invalid packet type sent after Connect");
-        }
+    let stream = mqtt_3_1_4_4_connect(&client_id, &local_addr, None).await;
 
+    let session_id = {
         // Search db for the current connexion
         let db = sessions.db.read().await;
         assert_eq!(db.len(), 1);
         let session = db[0].read().await;
         assert_eq!(session.client_id(), client_id);
-        String::from(session.client_id())
+        String::from(session.id())
     };
 
     // Let's do the same, forcing clean start to 0
-    let mut new_stream = client::spawn(&local_addr).await.unwrap();
-
-    if let Packet::ConnAck(packet) = client::send_waitback(
-        &mut new_stream,
-        Connect {
-            client_id: Some(client_id.clone()),
-            clean_start: false, // Set Clean Start to 0. Session MUST be kept
-            ..Default::default()
-        }
-        .into(),
-        false,
-    )
-    .await
-    .unwrap()
-    {
-        assert_eq!(packet.reason_code, ReasonCode::Success);
-        assert!(packet.assigned_client_id.is_none());
-    } else {
-        panic!("Invalid packet type sent after Connect");
-    }
+    mqtt_3_1_4_4_connect(&client_id, &local_addr, Some(false)).await;
 
     // The first client must have been disconnected by the server
-    if let Some(what) = client::wait_close(
-        stream,
-        client::DisconnectPolicy::Force(Some(ReasonCode::SessionTakenOver)),
-    )
-    .await
-    {
+    let policy = DisPacket::Ignore(Some(ReasonCode::SessionTakenOver));
+    if let Some(what) = client::wait_close(stream, policy).await {
         panic!(what);
     }
 
@@ -348,73 +315,32 @@ async fn mqtt_3_1_2_5() {
 async fn mqtt_3_1_2_6() {
     let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
 
-    let client_id = String::from("Jaden");
+    let first_client_id = String::from("Jaden");
+    let second_client_id = String::from("Jarod");
 
     // First, we connect a client with a fixed id and wait for ACK
-    let mut stream = client::spawn(&local_addr).await.unwrap();
-    let session_id = {
-        if let Packet::ConnAck(packet) = client::send_waitback(
-            &mut stream,
-            Connect {
-                client_id: Some(client_id.clone()),
-                ..Default::default()
-            }
-            .into(),
-            false,
-        )
-        .await
-        .unwrap()
-        {
-            assert_eq!(packet.reason_code, ReasonCode::Success);
-            assert!(packet.assigned_client_id.is_none());
-        } else {
-            panic!("Invalid packet type sent after Connect");
-        }
+    mqtt_3_1_4_4_connect(&first_client_id, &local_addr, None).await;
 
+    let session_id = {
         // Search db for the current connexion
         let db = sessions.db.read().await;
         assert_eq!(db.len(), 1);
         let session = db[0].read().await;
-        assert_eq!(session.client_id(), client_id);
-        String::from(session.client_id())
+        assert_eq!(session.client_id(), first_client_id);
+        String::from(session.id())
     };
 
     // Let's do the same, forcing clean start to 0
-    let client_id = String::from("Jarod");
-    let mut new_stream = client::spawn(&local_addr).await.unwrap();
-    if let Packet::ConnAck(packet) = client::send_waitback(
-        &mut new_stream,
-        Connect {
-            client_id: Some(client_id.clone()),
-            clean_start: false, // Set Clean Start to 0.
-            ..Default::default()
-        }
-        .into(),
-        false,
-    )
-    .await
-    .unwrap()
-    {
-        assert_eq!(packet.reason_code, ReasonCode::Success);
-        assert!(packet.assigned_client_id.is_none());
-    } else {
-        panic!("Invalid packet type sent after Connect");
-    }
+    mqtt_3_1_4_4_connect(&second_client_id, &local_addr, Some(false)).await;
 
     let db = sessions.db.read().await;
     assert_eq!(db.len(), 2); // Because former session has different ID
-    let session = db[0].read().await;
+    let session = db[1].read().await; // The last created session is at 1
 
     // Test: Client ID must be same but session id must be different
-    assert_ne!(session.client_id(), client_id); // This is were client ids are compared
-    assert_ne!(session_id, session.id()); // This is were sessions are compared
+    assert_eq!(session.client_id(), second_client_id);
+    assert_ne!(session.client_id(), first_client_id); // New client's ID is not same as first one
+    assert_ne!(session.id(), session_id); // Session ids are not the same
 
     server::stop(shutdown, server).await;
 }
-///////////////////////////////////////////////////////////////////////////////
-// The Server MUST perform the processing of Clean Start that is described in
-// section 3.1.2.4 [MQTT-3.1.4-4]
-// Aggregation of:
-// - [MQTT-3.1.2-4]: mqtt_3_1_2_4()
-// - [MQTT-3.1.2-5]: mqtt_3_1_2_5()
-// - [MQTT-3.1.2-6]: mqtt_3_1_2_6()
