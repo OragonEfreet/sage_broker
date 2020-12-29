@@ -39,10 +39,10 @@ async fn main() {
             shutdown.clone(),
         ));
 
-        use std::time::Duration;
-        task::sleep(Duration::from_secs(10)).await;
-        println!("Shutting down");
-        shutdown.fire().await;
+        //        use std::time::Duration;
+        //        task::sleep(Duration::from_secs(10)).await;
+        //        println!("Shutting down");
+        //        shutdown.fire().await;
 
         server.await;
         info!("Listen loop ended");

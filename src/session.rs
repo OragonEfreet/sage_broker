@@ -1,5 +1,6 @@
 use crate::Peer;
 use async_std::sync::{Arc, RwLock, Weak};
+use log::info;
 use nanoid::nanoid;
 
 /// Represents a client and holds all of its data, may it be active or not.
@@ -15,8 +16,11 @@ pub struct Session {
 impl Session {
     /// Creates a new session, giving a peer and an id
     pub fn new(client_id: &str, peer: &Arc<RwLock<Peer>>) -> Self {
+        let id = nanoid!();
+        info!("New session: Unique ID:{:?}, Client ID:{:?}", id, client_id);
+
         Session {
-            id: nanoid!(),
+            id,
             client_id: client_id.into(),
             peer: Arc::downgrade(peer),
         }
@@ -30,6 +34,10 @@ impl Session {
 
     /// Returns the client_id of the session
     pub fn client_id(&self) -> &str {
+        info!(
+            "Session Unique ID:{:?} set to Client ID:{:?}",
+            self.id, self.client_id
+        );
         &self.client_id
     }
 
