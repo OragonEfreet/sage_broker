@@ -23,7 +23,7 @@ where
     debug!(
         "<<< [{}]: {:?}",
         if let Some(session) = source.read().await.session() {
-            &session.id
+            session.client_id()
         } else {
             ""
         },
@@ -71,7 +71,7 @@ where
                 {
                     let mut session = session.write().await; // We take the session for writing
                                                              // If the session already has a peer, we will notify them
-                    if let Some(peer) = session.peer.upgrade() {
+                    if let Some(peer) = session.peer() {
                         peer.write()
                             .await
                             .send_close(
@@ -83,13 +83,12 @@ where
                             )
                             .await;
                     }
-                    session.peer = Arc::downgrade(peer);
+                    session.set_peer(peer);
                 }
                 session
             } else {
-                let id = client_id.clone();
-                let peer = Arc::downgrade(peer);
-                Arc::new(RwLock::new(Session { id, peer }))
+                let client_id = client_id.clone();
+                Arc::new(RwLock::new(Session::new(&client_id, peer)))
             }
         };
         sessions.add(session).await;

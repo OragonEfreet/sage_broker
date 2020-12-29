@@ -19,7 +19,7 @@ impl SessionsBackEnd for Sessions {
         if let Some(index) = self
             .db
             .iter()
-            .position(|c| task::block_on(c.read()).id == *client_id)
+            .position(|c| task::block_on(c.read()).client_id() == client_id)
         {
             Some(self.db.swap_remove(index)) // We take it
         } else {

@@ -20,7 +20,7 @@ impl SessionsBackEnd for TestSessions {
         let mut db = self.db.write().await;
         if let Some(index) = db
             .iter()
-            .position(|c| task::block_on(c.read()).id == *client_id)
+            .position(|c| task::block_on(c.read()).client_id() == client_id)
         {
             Some(db.swap_remove(index)) // We take it
         } else {

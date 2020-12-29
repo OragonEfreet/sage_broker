@@ -234,8 +234,8 @@ async fn mqtt_3_1_2_4() {
         let db = sessions.db.read().await;
         assert_eq!(db.len(), 1);
         let session = db[0].read().await;
-        assert_eq!(session.id, client_id);
-        if let Some(peer) = session.peer.upgrade() {
+        assert_eq!(session.client_id(), client_id);
+        if let Some(peer) = session.peer() {
             let peer = peer.read().await;
             assert_eq!(*peer.addr(), stream_addr);
         } else {
@@ -273,8 +273,8 @@ async fn mqtt_3_1_2_4() {
         let db = sessions.db.read().await;
         assert_eq!(db.len(), 1);
         let session = db[0].read().await;
-        assert_eq!(session.id, client_id);
-        if let Some(peer) = session.peer.upgrade() {
+        assert_eq!(session.client_id(), client_id);
+        if let Some(peer) = session.peer() {
             let peer = peer.read().await;
             assert_eq!(*peer.addr(), stream_addr);
         // TODO compare de session identifiers to be the same
