@@ -2,6 +2,7 @@
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Packet, ReasonCode, Subscribe};
 pub mod utils;
+use utils::client::Response;
 pub use utils::*;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +48,7 @@ async fn mqtt_3_8_1_1() {
             .unwrap();
         buffer[0] = fixed_header; // Invalidate the packet
 
-        if let Some(packet) = client::send_waitback_data(&mut stream, buffer).await {
+        if let Response::Packet(packet) = client::send_waitback_data(&mut stream, buffer).await {
             if let Packet::ConnAck(packet) = packet {
                 assert_eq!(packet.reason_code, expected);
             } else {
@@ -111,10 +112,8 @@ async fn mqtt_3_8_4_1() {
         .await
         .unwrap();
 
-    let response = client::send_waitback_data(&mut stream, buffer)
-        .await
-        .unwrap();
-    assert!(matches!(response, Packet::SubAck(_)));
+    let response = client::send_waitback_data(&mut stream, buffer).await;
+    assert!(matches!(response, Response::Packet(Packet::SubAck(_))));
 
     server::stop(shutdown, server).await;
 }

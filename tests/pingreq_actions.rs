@@ -3,6 +3,7 @@ use sage_broker::BrokerSettings;
 use sage_mqtt::Packet;
 
 pub mod utils;
+use utils::client::Response;
 use utils::*;
 
 /// The Server MUST send a PINGRESP packet in response to a PINGREQ packet
@@ -18,7 +19,7 @@ async fn mqtt_3_12_4_1() {
 
     assert!(matches!(
         client::send_waitback(&mut stream, Packet::PingReq).await,
-        Some(Packet::PingResp)
+        Response::Packet(Packet::PingResp)
     ));
 
     server::stop(shutdown, server).await;

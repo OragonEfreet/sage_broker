@@ -9,7 +9,7 @@ use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::Instant;
 pub mod utils;
-use utils::client::DisPacket;
+use utils::client::{DisPacket, Response};
 pub use utils::*;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,6 +169,8 @@ async fn connect_timeout() {
 ///////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the format described in
 /// section 3.1 and close the Network Connection if it does not match.
+/// NOTE we may want to add new invalidate scenarios here.
+/// Cases that would send back a connack packet
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -187,12 +189,18 @@ async fn mqtt_3_1_4_1() {
         .unwrap();
     buffer[0] |= 0b1111; // Invalidate the packet
 
-    if let Some(packet) = client::send_waitback_data(&mut stream, buffer).await {
-        assert!(matches!(packet, Packet::ConnAck(_)));
-        if let Packet::ConnAck(packet) = packet {
-            assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
-        }
-    }
+    // We test for an actual disconnection (None) from the server
+    // because no connection was made, thus no disconnect packet
+    // neither connack packet can be returned
+    let response = client::send_waitback_data(&mut stream, buffer).await;
+    println!("====> {:?}", response);
+    assert!(matches!(response, Response::Close));
+    //    if let Some(packet) = client::send_waitback_data(&mut stream, buffer).await {
+    //        assert!(matches!(packet, Packet::Disconnect(_)));
+    //        if let Packet::Disconnect(packet) = packet {
+    //            assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
+    //        }
+    //    }
 
     server::stop(shutdown, server).await;
 }
@@ -243,7 +251,7 @@ async fn mqtt_3_1_4_2() {
 
         // Send an unsupported connect packet and wait for an immediate disconnection
         // from the server.
-        if let Some(packet) = client::send_waitback(&mut stream, connect.into()).await {
+        if let Response::Packet(packet) = client::send_waitback(&mut stream, connect.into()).await {
             if let Packet::ConnAck(packet) = packet {
                 assert_eq!(packet.reason_code, reason_code);
             } else {
@@ -326,9 +334,8 @@ async fn mqtt_3_1_4_4_connect(
 
     // First, we connect a client with a fixed id and wait for ACK
     let mut stream = client::spawn(&local_addr).await;
-    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into())
-        .await
-        .unwrap()
+    if let Response::Packet(Packet::ConnAck(packet)) =
+        client::send_waitback(&mut stream, connect.into()).await
     {
         assert_eq!(packet.reason_code, ReasonCode::Success);
         assert!(packet.assigned_client_id.is_none());
@@ -351,7 +358,7 @@ async fn mqtt_3_1_4_5() {
     let mut stream = client::spawn(&local_addr).await;
 
     // Send an valid connect packet and wait for ACK 0
-    if let Some(packet) =
+    if let Response::Packet(packet) =
         client::send_waitback(&mut stream, Packet::Connect(Default::default())).await
     {
         if let Packet::ConnAck(packet) = packet {
@@ -406,7 +413,7 @@ async fn mqtt_3_1_4_6() {
         };
 
         // Send an rejected connect packet
-        if let Some(packet) =
+        if let Response::Packet(packet) =
             client::send_waitback(&mut stream, Packet::Connect(rejected_connect)).await
         {
             assert!(matches!(packet, Packet::ConnAck(_)));
@@ -418,9 +425,10 @@ async fn mqtt_3_1_4_6() {
         }
 
         // Immediately send a second packet and expect a disconnected stream
-        assert!(client::send_waitback(&mut stream, second_packet)
-            .await
-            .is_none());
+        assert!(matches!(
+            client::send_waitback(&mut stream, second_packet).await,
+            Response::Close
+        ));
     }
 
     server::stop(shutdown, server).await;

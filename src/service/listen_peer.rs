@@ -7,7 +7,7 @@ use async_std::{
 };
 use futures::SinkExt;
 use log::{debug, error, info};
-use sage_mqtt::{ConnAck, Disconnect, Packet, ReasonCode};
+use sage_mqtt::{Disconnect, Packet, ReasonCode};
 use std::time::{Duration, Instant};
 
 pub async fn listen_peer(
@@ -73,12 +73,16 @@ pub async fn listen_peer(
                 // If it's an error (usually ProtocolError o MalformedPacket),
                 // We ConnAck it and end the connection.
                 Err(e) => {
-                    error!("Error: {:?}", e);
-                    let packet = ConnAck {
-                        reason_code: e.into(),
-                        ..Default::default()
-                    };
-                    peer.write().await.send_close(packet.into()).await;
+                    error!("Decode Error: {:?}", e);
+                    if peer.read().await.session().is_some() {
+                        let packet = Disconnect {
+                            reason_code: e.into(),
+                            ..Default::default()
+                        };
+                        peer.write().await.send_close(packet.into()).await;
+                    } else {
+                        peer.write().await.close().await;
+                    }
                 }
             }
 

@@ -28,9 +28,9 @@ pub async fn spawn(local_addr: &SocketAddr) -> TcpStream {
 /// stream in case of success
 pub async fn connect(local_addr: &SocketAddr, connect: Connect) -> TcpStream {
     let mut stream = spawn(&local_addr).await;
-    if let Packet::ConnAck(connack) = send_waitback(&mut stream, Packet::Connect(connect))
-        .await
-        .unwrap()
+
+    if let Response::Packet(Packet::ConnAck(connack)) =
+        send_waitback(&mut stream, Packet::Connect(connect)).await
     {
         assert_eq!(connack.reason_code, ReasonCode::Success);
     } else {
@@ -39,24 +39,34 @@ pub async fn connect(local_addr: &SocketAddr, connect: Connect) -> TcpStream {
     stream
 }
 
+/// The kind of response send by send_waitback_data and send_waitback
+#[derive(Debug)]
+pub enum Response {
+    /// The server did not send anything after a given delay
+    None,
+    /// The server closed the connection
+    Close,
+    /// The server returned a packet
+    Packet(Packet),
+}
 ///////////////////////////////////////////////////////////////////////////////
 /// Sends the given data and wait for the next response from the server.
 /// Note that nothing ensures the received packet from the server is a response
 /// to the sent packet.
-pub async fn send_waitback_data(stream: &mut TcpStream, buffer: Vec<u8>) -> Option<Packet> {
+pub async fn send_waitback_data(stream: &mut TcpStream, buffer: Vec<u8>) -> Response {
     while stream.write(&buffer).await.is_err() {}
 
     let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
     let mut buf = vec![0u8; 1024];
     match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
         Err(e) => match e.kind() {
-            ErrorKind::TimedOut => panic!("Server did not respond to invalid connect packet"),
+            ErrorKind::TimedOut => Response::None,
             _ => panic!("IO Error: {:?}", e),
         },
-        Ok(0) => None,
+        Ok(0) => Response::Close,
         Ok(_) => {
             let mut buf = Cursor::new(buf);
-            Some(Packet::decode(&mut buf).await.unwrap())
+            Response::Packet(Packet::decode(&mut buf).await.unwrap())
         }
     }
 }
@@ -65,7 +75,7 @@ pub async fn send_waitback_data(stream: &mut TcpStream, buffer: Vec<u8>) -> Opti
 /// Sends the given packet and wait for the next response from the server.
 /// Note that nothing ensures the received packet from the server is a response
 /// to the sent packet.
-pub async fn send_waitback(stream: &mut TcpStream, packet: Packet) -> Option<Packet> {
+pub async fn send_waitback(stream: &mut TcpStream, packet: Packet) -> Response {
     // Send the packet as buffer
     let mut buffer = Vec::new();
     packet.encode(&mut buffer).await.unwrap();
