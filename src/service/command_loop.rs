@@ -1,13 +1,12 @@
 use crate::{
-    treat::{treat, TreatAction},
-    BrokerSettings, Command, CommandReceiver, Peer, SessionsBackEnd, Trigger,
+    Action, BrokerSettings, Command, CommandReceiver, Control, Peer, SessionsBackEnd, Trigger,
 };
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
 };
-use log::info;
-use sage_mqtt::Packet;
+use log::{debug, info};
+use sage_mqtt::{Disconnect, Packet, ReasonCode};
 
 /// The command loop is reponsible from receiving and treating any command
 /// packet. I thus represent the actual instance of a running broker.
@@ -25,7 +24,7 @@ pub async fn command_loop<B>(
     shutdown: Trigger,
 ) -> (B, CommandReceiver)
 where
-    B: SessionsBackEnd,
+    B: SessionsBackEnd + Send,
 {
     info!("Start command loop");
     while let Some(command) = from_command_channel.next().await {
@@ -46,10 +45,33 @@ async fn control_packet<B>(
     source: Arc<RwLock<Peer>>,
     shutdown: &Trigger,
 ) where
-    B: SessionsBackEnd,
+    B: SessionsBackEnd + Send,
 {
-    match treat(&settings, sessions, packet, &source, shutdown).await {
-        TreatAction::Respond(packet) => source.write().await.send(packet).await,
-        TreatAction::RespondAndDisconnect(packet) => source.write().await.send_close(packet).await,
+    debug!(
+        "[{:?}] <<< {:?}",
+        if let Some(s) = source.read().await.session() {
+            s.read().await.client_id().into()
+        } else {
+            String::from("N/A")
+        },
+        packet
+    );
+    // If the broker is stopping, let's notify here the client with a
+    // DISCONNECT and close the peer
+    // NOTE Maybe move this test up a bit
+    let action = if shutdown.is_fired().await {
+        Action::RespondAndDisconnect(
+            Disconnect {
+                reason_code: ReasonCode::ServerShuttingDown,
+                ..Default::default()
+            }
+            .into(),
+        )
+    } else {
+        packet.control(&settings, sessions, &source).await
+    };
+    match action {
+        Action::Respond(packet) => source.write().await.send(packet).await,
+        Action::RespondAndDisconnect(packet) => source.write().await.send_close(packet).await,
     };
 }

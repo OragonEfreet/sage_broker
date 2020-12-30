@@ -5,11 +5,11 @@
 
 mod broker_settings;
 mod command;
+mod control;
 mod peer;
 mod session;
 mod sessions;
 mod sessions_back_end;
-mod treat;
 mod trigger;
 
 /// All functions related to service control.
@@ -24,10 +24,11 @@ pub use session::Session;
 pub use sessions::Sessions;
 pub use sessions_back_end::SessionsBackEnd;
 pub use trigger::Trigger;
-/// bim
+/// The MPSC sender for controlling a running server
 pub type CommandSender = mpsc::UnboundedSender<Command>;
-/// bam
+/// The MPSC sender for controlling a running server
 pub type CommandReceiver = mpsc::UnboundedReceiver<Command>;
+use control::{Action, Control};
 
 type PacketReceiver = mpsc::UnboundedReceiver<Packet>;
 type PacketSender = mpsc::UnboundedSender<Packet>;

@@ -150,7 +150,6 @@ async fn mqtt_3_8_4_1() {
 #[async_std::test]
 async fn mqtt_3_8_4_2() {
     // We send 100 random packet identifiers and expect the SubAck to return the same each
-    pretty_env_logger::init();
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..Default::default()

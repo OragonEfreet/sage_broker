@@ -1,12 +1,12 @@
 - [ ] Backlog
-  - [ ] Create control internal module with
-    - [ ] Control Trait
-    - [ ] impl for each Packet type
   - [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
   - [ ] Commands used to interface with the Command loop 
   - [ ] Check for documentation of server.rs and mod.rs
   - [ ] In tests utils, assert an invalid packet is, indeed, invalid
   - [ ] The Broker struct IS the command loop
+  - [X] Create control internal module with
+    - [X] Control Trait
+    - [X] impl for each Packet type
 - [ ] MQTT Server Conformance Clause
   - [ ] ! SUBSCRIBE Actions
     - [ ] MQTT-3.8.4-3: If a Server receives a SUBSCRIBE packet containing a Topic Filter that is identical to a Non‑shared Subscription’s Topic Filter for the current Session then it MUST replace that existing Subscription with a new Subscription.
