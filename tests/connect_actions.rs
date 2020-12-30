@@ -378,3 +378,63 @@ async fn mqtt_3_1_4_5() {
 
     server::stop(shutdown, server).await;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+/// MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the
+/// Client after the CONNECT packet except AUTH packets.
+/// NOTE: Currently AUTH packet is not accepted either
+#[async_std::test]
+async fn mqtt_3_1_4_6() {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+
+    // Let's create a collection of all packet types
+    let packets = vec![
+        Packet::Connect(Default::default()),
+        Packet::ConnAck(Default::default()),
+        Packet::Publish(Default::default()),
+        Packet::PubAck(Default::default()),
+        Packet::PubRec(Default::default()),
+        Packet::PubRel(Default::default()),
+        Packet::PubComp(Default::default()),
+        Packet::Subscribe(Default::default()),
+        Packet::SubAck(Default::default()),
+        Packet::UnSubscribe(Default::default()),
+        Packet::UnSubAck(Default::default()),
+        Packet::PingReq,
+        Packet::PingResp,
+        Packet::Disconnect(Default::default()),
+        Packet::Auth(Default::default()),
+    ];
+    for second_packet in packets {
+        let mut stream = client::spawn(&local_addr).await.unwrap();
+
+        // Auth not supported, so we can reject a packet by providing one
+        let rejected_connect = Connect {
+            authentication: Some(Default::default()),
+            ..Default::default()
+        };
+
+        // Send an rejected connect packet
+        if let Some(packet) =
+            client::send_waitback(&mut stream, Packet::Connect(rejected_connect), false).await
+        {
+            assert!(matches!(packet, Packet::ConnAck(_)));
+            if let Packet::ConnAck(packet) = packet {
+                // We just want ack to be none of ok or malformed
+                assert_ne!(packet.reason_code, ReasonCode::Success);
+                assert_ne!(packet.reason_code, ReasonCode::MalformedPacket);
+            }
+        }
+
+        // Immediately send a second packet and expect a disconnected stream
+        assert!(client::send_waitback(&mut stream, second_packet, false)
+            .await
+            .is_none());
+    }
+
+    server::stop(shutdown, server).await;
+}
