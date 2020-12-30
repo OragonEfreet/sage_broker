@@ -2,6 +2,7 @@
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Packet, ReasonCode, Subscribe};
 pub mod utils;
+
 use utils::client::Response;
 pub use utils::*;
 
@@ -147,7 +148,41 @@ async fn mqtt_3_8_4_1() {
 /// MQTT-3.8.4-2: The SUBACK packet MUST have the same Packet Identifier as the SUBSCRIBE packet
 /// that it is acknowledging.
 #[async_std::test]
-async fn mqtt_3_8_4_2() {}
+async fn mqtt_3_8_4_2() {
+    // We send 100 random packet identifiers and expect the SubAck to return the same each
+    pretty_env_logger::init();
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let mut stream = client::connect(&local_addr, Default::default()).await;
+    for _ in 0..100 {
+        let mut buffer = Vec::new();
+        let packet_identifier = rand::random();
+
+        let subscribe = Subscribe {
+            packet_identifier,
+            subscriptions: vec![Default::default()],
+            ..Default::default()
+        };
+
+        Packet::Subscribe(subscribe)
+            .encode(&mut buffer)
+            .await
+            .unwrap();
+
+        if let Response::Packet(Packet::SubAck(suback)) =
+            client::send_waitback_data(&mut stream, buffer).await
+        {
+            assert_eq!(suback.packet_identifier, packet_identifier);
+        } else {
+            panic!("Expected SUBACK after SUBSCRIBE");
+        }
+    }
+
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-3: If a Server receives a SUBSCRIBE packet containing a Topic Filter that is

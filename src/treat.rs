@@ -1,7 +1,7 @@
 use crate::{BrokerSettings, Peer, Session, SessionsBackEnd, Trigger};
 use async_std::sync::{Arc, RwLock};
-use log::error;
-use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode, SubAck};
+use log::{debug, error};
+use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode, SubAck, Subscribe};
 
 pub enum TreatAction {
     // None,
@@ -20,6 +20,15 @@ pub async fn treat<B>(
 where
     B: SessionsBackEnd,
 {
+    debug!(
+        "[{:?}] <<< {:?}",
+        if let Some(s) = source.read().await.session() {
+            s.read().await.client_id().into()
+        } else {
+            String::from("N/A")
+        },
+        packet
+    );
     // If the broker is stopping, let's notify here the client with a
     // DISCONNECT and close the peer
     if shutdown.is_fired().await {
@@ -32,7 +41,7 @@ where
         )
     } else {
         match packet {
-            Packet::Subscribe(_) => treat_subscribe().await,
+            Packet::Subscribe(packet) => treat_subscribe(packet).await,
             Packet::Connect(packet) => treat_connect(&settings, sessions, packet, &source).await,
             Packet::PingReq => treat_pingreq(),
             _ => treat_unsupported(),
@@ -105,8 +114,12 @@ where
 }
 
 /// Simply returns a PingResp package
-async fn treat_subscribe() -> TreatAction {
-    let suback = SubAck::default();
+/// With the correct packet identifier
+async fn treat_subscribe(packet: Subscribe) -> TreatAction {
+    let suback = SubAck {
+        packet_identifier: packet.packet_identifier,
+        ..Default::default()
+    };
     TreatAction::Respond(suback.into())
 }
 
