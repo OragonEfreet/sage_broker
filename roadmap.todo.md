@@ -5,49 +5,6 @@
   - [ ] In tests utils, assert an invalid packet is, indeed, invalid
   - [ ] The Broker struct IS the command loop
 - [ ] MQTT Server Conformance Clause
-  - [ ] ! CONNECT Actions
-    - [ ] MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the Client after the CONNECT packet except AUTH packets.
-    - [X] MQTT-3.1.4-3: If the ClientID represents a Client already connected to the Server, the Server sends a DISCONNECT packet to the existing Client with Reason Code of 0x8E (Session taken over) as described in section 4.13 and MUST close the Network Connection of the existing Client.
-    - [X] MQTT-3.1.4-2: The Server MAY check that the contents of the CONNECT packet meet any further restrictions and SHOULD perform authentication and authorization checks. If any of these checks fail, it MUST close the Network Connection.
-    - [X] MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the format described in section 3.1 and close the Network Connection if it does not match.
-    - [X] MQTT 3.1.4.4: The Server MUST perform the processing of Clean Start.
-      - [X] Refactor
-        - [X] Make Command Loop return both receiver and sessions
-        - [X] Get rid of Broker
-        - [X] Find better than the shutdown flag
-        - [X] Rename Control to Command 
-        - [X] Create sessions from the server.rs
-        - [X] Get rid of explicit waiters
-        - [X] Get rid of the bind function
-        - [X] Get rid of the run function
-      - [X] A Session must have access to its Peer
-      - [X] Give Sessions its own struct
-      - [X] Templatize the Sessions struct, with a trait like "SessionsBackEnd"
-      - [X] Session identifier, different from client identifier, uniquely identifies a session even when the peer changes
-      - [X] Create a "test disconnect" utility that checks the client stream is shutdown, optionnaly with a DIS packet from the server
-      - [X] MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 0, the Client and Server MUST discard any existing Session and start a new Session.
-      - [X] MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated with the Client Identifier, the Server MUST resume communications with the Client based on state from the existing Session.
-      - [X] MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated with the Client Identifier, the Server MUST create a new Session.
-    - [X] MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing a 0x00 (Success) Reason Code.
-  - [ ] ! PUBLISH Actions
-    - [ ] MQTT-3.3.4-1: The receiver of a PUBLISH Packet MUST respond with the packet as determined by the QoS in the PUBLISH Packet.
-    - [ ] MQTT-3.3.4-2: In this case the Server MUST deliver the message to the Client respecting the maximum QoS of all the matching subscriptions.
-    - [ ] MQTT-3.3.4-3: If the Client specified a Subscription Identifier for any of the overlapping subscriptions the Server MUST send those Subscription Identifiers in the message which is published as the result of the subscriptions.
-    - [ ] MQTT-3.3.4-4: If the Server sends a single copy of the message it MUST include in the PUBLISH packet the Subscription Identifiers for all matching subscriptions which have a Subscription Identifiers, their order is not significant.
-    - [ ] MQTT-3.3.4-5: If the Server sends multiple PUBLISH packets it MUST send, in each of them, the Subscription Identifier of the matching subscription if it has a Subscription Identifier.
-    - [ ] MQTT-3.3.4-6: A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier.
-    - [ ] MQTT-3.3.4-7: The Client MUST NOT send more than Receive Maximum QoS 1 and QoS 2 PUBLISH packets for which it has not received PUBACK, PUBCOMP, or PUBREC with a Reason Code of 128 or greater from the Server.
-    - [ ] MQTT-3.3.4-8: The Client MUST NOT delay the sending of any packets other than PUBLISH packets due to having sent Receive Maximum PUBLISH packets without receiving acknowledgements for them.
-    - [ ] MQTT-3.3.4-9: The Server MUST NOT send more than Receive Maximum QoS 1 and QoS 2 PUBLISH packets for which it has not received PUBACK, PUBCOMP, or PUBREC with a Reason Code of 128 or greater from the Client.
-    - [ ] MQTT-3.3.4-10: The Server MUST NOT delay the sending of any packets other than PUBLISH packets due to having sent Receive Maximum PUBLISH packets without receiving acknowledgements for them.
-  - [ ] ! PUBACK Actions
-    - [ ] MQTT-3.4.2-1: The Client or Server sending the PUBACK packet MUST use one of the PUBACK Reason Codes.
-    - [ ] MQTT-3.4.2-2: The sender MUST NOT send this property if it would increase the size of the PUBACK packet beyond the Maximum Packet Size specified by the receiver.
-    - [ ] MQTT-3.4.2-3: The sender MUST NOT send this property if it would increase the size of the PUBACK packet beyond the Maximum Packet Size specified by the receiver.
-  - [ ] ! PUBCOMP Actions
-    - [ ] MQTT-3.7.2-1: The Client or Server sending the PUBCOMP packets MUST use one of the PUBCOMP Reason Codes.
-    - [ ] MQTT-3.7.2-2: The sender MUST NOT use this Property if it would increase the size of the PUBCOMP packet beyond the Maximum Packet Size specified by the receiver.
-    - [ ] MQTT-3.7.2-3: The sender MUST NOT send this property if it would increase the size of the PUBCOMP packet beyond the Maximum Packet Size specified by receiver.
   - [ ] ! SUBSCRIBE Actions
     - [ ] MQTT-3.8.1-1: Bits 3,2,1 and 0 of the Fixed Header of the SUBSCRIBE packet are reserved and MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed and close the Network Connection
     - [ ] MQTT-3.8.3-1: The Topic Filters MUST be a UTF-8 Encoded String.
@@ -68,6 +25,25 @@
     - [ ] MQTT-3.9.2-2: The Server MUST NOT send this property if it would increase the size of the SUBACK packet beyond the Maximum Packet Size specified by the Client.
     - [ ] MQTT-3.9.3-1: The order of Reason Codes in the SUBACK packet MUST match the order of Topic Filters in the SUBSCRIBE packet.
     - [ ] MQTT-3.9.3-2: The Server sending the SUBACK packet MUST send one of the Subscribe Reason Code values for each Topic Filter received.
+  - [ ] ! PUBLISH Actions
+    - [ ] MQTT-3.3.4-1: The receiver of a PUBLISH Packet MUST respond with the packet as determined by the QoS in the PUBLISH Packet.
+    - [ ] MQTT-3.3.4-2: In this case the Server MUST deliver the message to the Client respecting the maximum QoS of all the matching subscriptions.
+    - [ ] MQTT-3.3.4-3: If the Client specified a Subscription Identifier for any of the overlapping subscriptions the Server MUST send those Subscription Identifiers in the message which is published as the result of the subscriptions.
+    - [ ] MQTT-3.3.4-4: If the Server sends a single copy of the message it MUST include in the PUBLISH packet the Subscription Identifiers for all matching subscriptions which have a Subscription Identifiers, their order is not significant.
+    - [ ] MQTT-3.3.4-5: If the Server sends multiple PUBLISH packets it MUST send, in each of them, the Subscription Identifier of the matching subscription if it has a Subscription Identifier.
+    - [ ] MQTT-3.3.4-6: A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier.
+    - [ ] MQTT-3.3.4-7: The Client MUST NOT send more than Receive Maximum QoS 1 and QoS 2 PUBLISH packets for which it has not received PUBACK, PUBCOMP, or PUBREC with a Reason Code of 128 or greater from the Server.
+    - [ ] MQTT-3.3.4-8: The Client MUST NOT delay the sending of any packets other than PUBLISH packets due to having sent Receive Maximum PUBLISH packets without receiving acknowledgements for them.
+    - [ ] MQTT-3.3.4-9: The Server MUST NOT send more than Receive Maximum QoS 1 and QoS 2 PUBLISH packets for which it has not received PUBACK, PUBCOMP, or PUBREC with a Reason Code of 128 or greater from the Client.
+    - [ ] MQTT-3.3.4-10: The Server MUST NOT delay the sending of any packets other than PUBLISH packets due to having sent Receive Maximum PUBLISH packets without receiving acknowledgements for them.
+  - [ ] ! PUBACK Actions
+    - [ ] MQTT-3.4.2-1: The Client or Server sending the PUBACK packet MUST use one of the PUBACK Reason Codes.
+    - [ ] MQTT-3.4.2-2: The sender MUST NOT send this property if it would increase the size of the PUBACK packet beyond the Maximum Packet Size specified by the receiver.
+    - [ ] MQTT-3.4.2-3: The sender MUST NOT send this property if it would increase the size of the PUBACK packet beyond the Maximum Packet Size specified by the receiver.
+  - [ ] ! PUBCOMP Actions
+    - [ ] MQTT-3.7.2-1: The Client or Server sending the PUBCOMP packets MUST use one of the PUBCOMP Reason Codes.
+    - [ ] MQTT-3.7.2-2: The sender MUST NOT use this Property if it would increase the size of the PUBCOMP packet beyond the Maximum Packet Size specified by the receiver.
+    - [ ] MQTT-3.7.2-3: The sender MUST NOT send this property if it would increase the size of the PUBCOMP packet beyond the Maximum Packet Size specified by receiver.
   - [ ] ! DISCONNECT Actions
     - [ ] MQTT-3.14.0-1: A Server MUST NOT send a DISCONNECT until after it has sent a CONNACK with Reason Code of less than 0x80.
     - [ ] MQTT-3.14.1-1: The Client or Server MUST validate that reserved bits are set to 0. If they are not zero it sends a DISCONNECT packet with a Reason code of 0x81 (Malformed Packet).
@@ -278,3 +254,27 @@
     - [ ] MQTT-3.6.2-3: The sender MUST NOT send this property if it would increase the size of the PUBREL packet beyond the Maximum Packet Size specified by the receiver.
   - [X] ! PINGREQ Actions
     - [X] MQTT-3.12.4-1: The Server MUST send a PINGRESP packet in response to a PINGREQ packet.
+  - [X] ! CONNECT Actions
+    - [X] MQTT-3.1.4-3: If the ClientID represents a Client already connected to the Server, the Server sends a DISCONNECT packet to the existing Client with Reason Code of 0x8E (Session taken over) as described in section 4.13 and MUST close the Network Connection of the existing Client.
+    - [X] MQTT-3.1.4-2: The Server MAY check that the contents of the CONNECT packet meet any further restrictions and SHOULD perform authentication and authorization checks. If any of these checks fail, it MUST close the Network Connection.
+    - [X] MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the format described in section 3.1 and close the Network Connection if it does not match.
+    - [X] MQTT 3.1.4.4: The Server MUST perform the processing of Clean Start.
+      - [X] Refactor
+        - [X] Make Command Loop return both receiver and sessions
+        - [X] Get rid of Broker
+        - [X] Find better than the shutdown flag
+        - [X] Rename Control to Command 
+        - [X] Create sessions from the server.rs
+        - [X] Get rid of explicit waiters
+        - [X] Get rid of the bind function
+        - [X] Get rid of the run function
+      - [X] A Session must have access to its Peer
+      - [X] Give Sessions its own struct
+      - [X] Templatize the Sessions struct, with a trait like "SessionsBackEnd"
+      - [X] Session identifier, different from client identifier, uniquely identifies a session even when the peer changes
+      - [X] Create a "test disconnect" utility that checks the client stream is shutdown, optionnaly with a DIS packet from the server
+      - [X] MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 0, the Client and Server MUST discard any existing Session and start a new Session.
+      - [X] MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated with the Client Identifier, the Server MUST resume communications with the Client based on state from the existing Session.
+      - [X] MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated with the Client Identifier, the Server MUST create a new Session.
+    - [X] MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing a 0x00 (Success) Reason Code.
+    - [X] MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the Client after the CONNECT packet except AUTH packets.

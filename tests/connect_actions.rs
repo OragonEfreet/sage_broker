@@ -181,9 +181,14 @@ async fn mqtt_3_1_4_1() {
 
     // Send an invalid connect packet and wait for an immediate disconnection
     // from the server.
-    if let Some(packet) =
-        client::send_waitback(&mut stream, Packet::Connect(Default::default()), true).await
-    {
+    let mut buffer = Vec::new();
+    Packet::Connect(Default::default())
+        .encode(&mut buffer)
+        .await
+        .unwrap();
+    buffer[0] |= 0b1111; // Invalidate the packet
+
+    if let Some(packet) = client::send_waitback_data(&mut stream, buffer).await {
         assert!(matches!(packet, Packet::ConnAck(_)));
         if let Packet::ConnAck(packet) = packet {
             assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
@@ -239,7 +244,7 @@ async fn mqtt_3_1_4_2() {
 
         // Send an unsupported connect packet and wait for an immediate disconnection
         // from the server.
-        if let Some(packet) = client::send_waitback(&mut stream, connect.into(), false).await {
+        if let Some(packet) = client::send_waitback(&mut stream, connect.into()).await {
             if let Packet::ConnAck(packet) = packet {
                 assert_eq!(packet.reason_code, reason_code);
             } else {
@@ -272,7 +277,7 @@ async fn mqtt_3_1_4_3() {
     };
 
     // By unwrapping we ensure to panic! is the server disconnected
-    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into(), false)
+    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into())
         .await
         .unwrap()
     {
@@ -339,7 +344,7 @@ async fn mqtt_3_1_4_4_connect(
 
     // First, we connect a client with a fixed id and wait for ACK
     let mut stream = client::spawn(&local_addr).await.unwrap();
-    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into(), false)
+    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into())
         .await
         .unwrap()
     {
@@ -365,7 +370,7 @@ async fn mqtt_3_1_4_5() {
 
     // Send an valid connect packet and wait for ACK 0
     if let Some(packet) =
-        client::send_waitback(&mut stream, Packet::Connect(Default::default()), false).await
+        client::send_waitback(&mut stream, Packet::Connect(Default::default())).await
     {
         if let Packet::ConnAck(packet) = packet {
             assert_eq!(packet.reason_code, ReasonCode::Success);
@@ -420,7 +425,7 @@ async fn mqtt_3_1_4_6() {
 
         // Send an rejected connect packet
         if let Some(packet) =
-            client::send_waitback(&mut stream, Packet::Connect(rejected_connect), false).await
+            client::send_waitback(&mut stream, Packet::Connect(rejected_connect)).await
         {
             assert!(matches!(packet, Packet::ConnAck(_)));
             if let Packet::ConnAck(packet) = packet {
@@ -431,7 +436,7 @@ async fn mqtt_3_1_4_6() {
         }
 
         // Immediately send a second packet and expect a disconnected stream
-        assert!(client::send_waitback(&mut stream, second_packet, false)
+        assert!(client::send_waitback(&mut stream, second_packet)
             .await
             .is_none());
     }

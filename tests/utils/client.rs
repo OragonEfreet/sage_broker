@@ -24,21 +24,10 @@ pub async fn spawn(local_addr: &SocketAddr) -> Option<TcpStream> {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// Sends the given packet and wait for the next response from the server.
+/// Sends the given data and wait for the next response from the server.
 /// Note that nothing ensures the received packet from the server is a response
 /// to the sent packet.
-pub async fn send_waitback(
-    stream: &mut TcpStream,
-    packet: Packet,
-    invalid: bool,
-) -> Option<Packet> {
-    // Send the packet as buffer
-    let mut buffer = Vec::new();
-    packet.encode(&mut buffer).await.unwrap();
-
-    if invalid {
-        buffer[0] |= 0b1111; // Invalidate the packet
-    }
+pub async fn send_waitback_data(stream: &mut TcpStream, buffer: Vec<u8>) -> Option<Packet> {
     while stream.write(&buffer).await.is_err() {}
 
     let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
@@ -54,6 +43,17 @@ pub async fn send_waitback(
             Some(Packet::decode(&mut buf).await.unwrap())
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// Sends the given packet and wait for the next response from the server.
+/// Note that nothing ensures the received packet from the server is a response
+/// to the sent packet.
+pub async fn send_waitback(stream: &mut TcpStream, packet: Packet) -> Option<Packet> {
+    // Send the packet as buffer
+    let mut buffer = Vec::new();
+    packet.encode(&mut buffer).await.unwrap();
+    send_waitback_data(stream, buffer).await
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -18,7 +18,7 @@ async fn mqtt_3_12_4_1() {
     // Send a valid connect packet and wait for connack
     // By unwrapping we ensure to panic! is the server disconnected
     if let Packet::ConnAck(packet) =
-        client::send_waitback(&mut stream, Packet::Connect(Default::default()), false)
+        client::send_waitback(&mut stream, Packet::Connect(Default::default()))
             .await
             .unwrap()
     {
@@ -28,7 +28,7 @@ async fn mqtt_3_12_4_1() {
     }
 
     // Send a valid connect packet and wait for connack
-    let packet = client::send_waitback(&mut stream, Packet::PingReq, false)
+    let packet = client::send_waitback(&mut stream, Packet::PingReq)
         .await
         .unwrap();
     assert!(matches!(packet, Packet::PingResp));
