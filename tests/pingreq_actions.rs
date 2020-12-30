@@ -1,3 +1,4 @@
+//! PINGREQ Actions requirements consists in all [MQTT 3.12.4-x] conformances.
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Packet, ReasonCode};
 
