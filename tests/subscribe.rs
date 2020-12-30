@@ -1,6 +1,6 @@
 //! SUBSCRIBE Actions requirements
 use sage_broker::BrokerSettings;
-use sage_mqtt::{Packet, ReasonCode};
+use sage_mqtt::{Packet, ReasonCode, Subscribe};
 pub mod utils;
 pub use utils::*;
 
@@ -91,7 +91,33 @@ async fn mqtt_3_8_3_5() {}
 /// MQTT-3.8.4-1: When the Server receives a SUBSCRIBE packet from a Client, the Server MUST
 /// respond with a SUBACK packet.
 #[async_std::test]
-async fn mqtt_3_8_4_1() {}
+async fn mqtt_3_8_4_1() {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let mut stream = client::connect(&local_addr, Default::default()).await;
+
+    let mut buffer = Vec::new();
+
+    let subscribe = Subscribe {
+        subscriptions: vec![Default::default()],
+        ..Default::default()
+    };
+
+    Packet::Subscribe(subscribe)
+        .encode(&mut buffer)
+        .await
+        .unwrap();
+
+    let response = client::send_waitback_data(&mut stream, buffer)
+        .await
+        .unwrap();
+    assert!(matches!(response, Packet::SubAck(_)));
+
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-2: The SUBACK packet MUST have the same Packet Identifier as the SUBSCRIBE packet

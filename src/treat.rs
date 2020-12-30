@@ -1,7 +1,7 @@
 use crate::{BrokerSettings, Peer, Session, SessionsBackEnd, Trigger};
 use async_std::sync::{Arc, RwLock};
 use log::{debug, error};
-use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode};
+use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode, SubAck};
 
 pub enum TreatAction {
     // None,
@@ -41,6 +41,7 @@ where
         )
     } else {
         match packet {
+            Packet::Subscribe(_) => treat_subscribe().await,
             Packet::Connect(packet) => treat_connect(&settings, sessions, packet, &source).await,
             Packet::PingReq => treat_pingreq(),
             _ => treat_unsupported(),
@@ -109,6 +110,12 @@ where
     } else {
         TreatAction::RespondAndDisconnect(connack.into())
     }
+}
+
+/// Simply returns a PingResp package
+async fn treat_subscribe() -> TreatAction {
+    let suback = SubAck::default();
+    TreatAction::Respond(suback.into())
 }
 
 /// Simply returns a PingResp package
