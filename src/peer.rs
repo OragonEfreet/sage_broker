@@ -1,5 +1,8 @@
 use crate::{PacketSender, Session};
-use async_std::{net::SocketAddr, sync::Arc};
+use async_std::{
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+};
 use futures::SinkExt;
 use log::error;
 use sage_mqtt::Packet;
@@ -7,7 +10,7 @@ use sage_mqtt::Packet;
 #[derive(Debug)]
 pub struct Peer {
     addr: SocketAddr,
-    session: Option<Arc<Session>>,
+    session: Option<Arc<RwLock<Session>>>,
     packet_sender: PacketSender,
     closing: bool,
 }
@@ -26,7 +29,11 @@ impl Peer {
         &self.addr
     }
 
-    pub fn session(&self) -> &Option<Arc<Session>> {
+    pub fn bind(&mut self, session: Arc<RwLock<Session>>) {
+        self.session = Some(session.clone());
+    }
+
+    pub fn session(&self) -> &Option<Arc<RwLock<Session>>> {
         &self.session
     }
 

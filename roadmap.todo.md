@@ -1,4 +1,7 @@
 - [ ] Backlog
+  - [ ] Create control internal module with
+    - [ ] Control Trait
+    - [ ] impl for each Packet type
   - [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
   - [ ] Commands used to interface with the Command loop 
   - [ ] Check for documentation of server.rs and mod.rs

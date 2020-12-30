@@ -16,7 +16,7 @@ pub struct Session {
 impl Session {
     /// Creates a new session, giving a peer and an id
     pub fn new(client_id: &str, peer: &Arc<RwLock<Peer>>) -> Self {
-        let id = nanoid!();
+        let id = format!("session_{}", nanoid!(10));
         info!("New session: Unique ID:{:?}, Client ID:{:?}", id, client_id);
 
         Session {
@@ -34,10 +34,6 @@ impl Session {
 
     /// Returns the client_id of the session
     pub fn client_id(&self) -> &str {
-        info!(
-            "Session Unique ID:{:?} set to Client ID:{:?}",
-            self.id, self.client_id
-        );
         &self.client_id
     }
 

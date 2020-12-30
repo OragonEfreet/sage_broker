@@ -18,27 +18,47 @@ async fn mqtt_3_8_1_1() {
         ..Default::default()
     })
     .await;
-    let fixed_headers = vec![
+
+    ////////////////////////////////////////////////////////////////////////////
+    let fixed_header = 0b1000_0010;
+    let mut stream = client::connect(&local_addr, Default::default()).await;
+
+    let mut buffer = Vec::new();
+    Packet::Subscribe(Subscribe {
+        subscriptions: vec![Default::default()],
+        ..Default::default()
+    })
+    .encode(&mut buffer)
+    .await
+    .unwrap();
+    buffer[0] = fixed_header; // Force Fixed Header value
+
+    assert!(matches!(
+        client::send_waitback_data(&mut stream, buffer).await,
+        Response::Packet(Packet::SubAck(_))
+    ));
+
+    ////////////////////////////////////////////////////////////////////////////
+    let invalid_fixed_headers = vec![
         // SUBS_3210
-        (0b1000_0000, ReasonCode::MalformedPacket),
-        (0b1000_0001, ReasonCode::MalformedPacket),
-        (0b1000_0010, ReasonCode::ProtocolError), // This one is valid
-        (0b1000_0011, ReasonCode::MalformedPacket),
-        (0b1000_0100, ReasonCode::MalformedPacket),
-        (0b1000_0101, ReasonCode::MalformedPacket),
-        (0b1000_0110, ReasonCode::MalformedPacket),
-        (0b1000_0111, ReasonCode::MalformedPacket),
-        (0b1000_1000, ReasonCode::MalformedPacket),
-        (0b1000_1001, ReasonCode::MalformedPacket),
-        (0b1000_1010, ReasonCode::MalformedPacket),
-        (0b1000_1011, ReasonCode::MalformedPacket),
-        (0b1000_1100, ReasonCode::MalformedPacket),
-        (0b1000_1101, ReasonCode::MalformedPacket),
-        (0b1000_1110, ReasonCode::MalformedPacket),
-        (0b1000_1111, ReasonCode::MalformedPacket),
+        0b1000_0000,
+        0b1000_0001,
+        0b1000_0011,
+        0b1000_0100,
+        0b1000_0101,
+        0b1000_0110,
+        0b1000_0111,
+        0b1000_1000,
+        0b1000_1001,
+        0b1000_1010,
+        0b1000_1011,
+        0b1000_1100,
+        0b1000_1101,
+        0b1000_1110,
+        0b1000_1111,
     ];
 
-    for (fixed_header, expected) in fixed_headers {
+    for fixed_header in invalid_fixed_headers {
         let mut stream = client::connect(&local_addr, Default::default()).await;
 
         let mut buffer = Vec::new();
@@ -46,14 +66,17 @@ async fn mqtt_3_8_1_1() {
             .encode(&mut buffer)
             .await
             .unwrap();
-        buffer[0] = fixed_header; // Invalidate the packet
+        buffer[0] = fixed_header; // Force Fixed Header value
 
-        if let Response::Packet(packet) = client::send_waitback_data(&mut stream, buffer).await {
-            if let Packet::ConnAck(packet) = packet {
-                assert_eq!(packet.reason_code, expected);
+        let response = client::send_waitback_data(&mut stream, buffer).await;
+        if let Response::Packet(packet) = response {
+            if let Packet::Disconnect(packet) = packet {
+                assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
             } else {
-                panic!("Expected CONNACK after SUBSCRIBE");
+                panic!("Expected DISCONNECT after malformed SUBSCRIBE");
             }
+        } else {
+            panic!("Expected packet after malformed SUBSCRIBE");
         }
     }
 
@@ -112,8 +135,10 @@ async fn mqtt_3_8_4_1() {
         .await
         .unwrap();
 
-    let response = client::send_waitback_data(&mut stream, buffer).await;
-    assert!(matches!(response, Response::Packet(Packet::SubAck(_))));
+    assert!(matches!(
+        client::send_waitback_data(&mut stream, buffer).await,
+        Response::Packet(Packet::SubAck(_))
+    ));
 
     server::stop(shutdown, server).await;
 }

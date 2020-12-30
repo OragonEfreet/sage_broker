@@ -1,6 +1,6 @@
 use crate::{BrokerSettings, Peer, Session, SessionsBackEnd, Trigger};
 use async_std::sync::{Arc, RwLock};
-use log::{debug, error};
+use log::error;
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode, SubAck};
 
 pub enum TreatAction {
@@ -20,15 +20,6 @@ pub async fn treat<B>(
 where
     B: SessionsBackEnd,
 {
-    debug!(
-        "<<< [{}]: {:?}",
-        if let Some(session) = source.read().await.session() {
-            session.client_id()
-        } else {
-            ""
-        },
-        packet
-    );
     // If the broker is stopping, let's notify here the client with a
     // DISCONNECT and close the peer
     if shutdown.is_fired().await {
@@ -104,7 +95,8 @@ where
                 Arc::new(RwLock::new(Session::new(&client_id, peer)))
             }
         };
-        sessions.add(session).await;
+        sessions.add(session.clone()).await;
+        peer.write().await.bind(session);
 
         TreatAction::Respond(connack.into())
     } else {

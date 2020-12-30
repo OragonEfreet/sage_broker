@@ -74,6 +74,7 @@ pub async fn listen_peer(
                 // We ConnAck it and end the connection.
                 Err(e) => {
                     error!("Decode Error: {:?}", e);
+
                     if peer.read().await.session().is_some() {
                         let packet = Disconnect {
                             reason_code: e.into(),
