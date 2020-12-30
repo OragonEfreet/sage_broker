@@ -48,6 +48,7 @@ where
     }
 }
 
+// Manages the creation of a new session, possibly taking over a new one
 async fn treat_connect<B>(
     settings: &Arc<BrokerSettings>,
     sessions: &mut B,
@@ -59,7 +60,7 @@ where
 {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
-    let connack = settings.acknowledge_connect(&connect);
+    let mut connack = settings.acknowledge_connect(&connect);
 
     if connack.reason_code == ReasonCode::Success {
         let client_id = connack
@@ -67,29 +68,37 @@ where
             .clone()
             .or(connect.client_id)
             .unwrap();
+
+        let clean_start = connect.clean_start;
         // Session creation/overtaking
         // First, we get the may be existing session from the db:
         let session = {
             if let Some(session) = sessions.take(&client_id).await {
-                {
-                    let mut session = session.write().await; // We take the session for writing
-                                                             // If the session already has a peer, we will notify them
-                    if let Some(peer) = session.peer() {
-                        peer.write()
-                            .await
-                            .send_close(
-                                Disconnect {
-                                    reason_code: ReasonCode::SessionTakenOver,
-                                    ..Default::default()
-                                }
-                                .into(),
-                            )
-                            .await;
-                    }
-                    session.set_peer(peer);
+                // If the existing session has a peer, it'll be disconnected with takeover
+                if let Some(peer) = session.read().await.peer() {
+                    peer.write()
+                        .await
+                        .send_close(
+                            Disconnect {
+                                reason_code: ReasonCode::SessionTakenOver,
+                                ..Default::default()
+                            }
+                            .into(),
+                        )
+                        .await;
                 }
-                session
+
+                if clean_start {
+                    connack.session_present = false;
+                    let client_id = client_id.clone();
+                    Arc::new(RwLock::new(Session::new(&client_id, peer)))
+                } else {
+                    connack.session_present = true;
+                    session.write().await.set_peer(peer);
+                    session
+                }
             } else {
+                connack.session_present = false;
                 let client_id = client_id.clone();
                 Arc::new(RwLock::new(Session::new(&client_id, peer)))
             }
