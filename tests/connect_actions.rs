@@ -1,7 +1,6 @@
 //! CONNECT Actions requirements consists in all [MQTT 3.1.4-x] conformances.
 //! It also describes some elements from [MQTT 3.1.2-x].
 use async_std::{
-    io::prelude::*,
     net::{SocketAddr, TcpStream},
     task,
 };
@@ -149,7 +148,7 @@ async fn connect_timeout() {
         ..Default::default()
     })
     .await;
-    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let mut stream = client::spawn(&local_addr).await;
 
     let now = Instant::now();
     let delay_with_tolerance = (TIMEOUT_DELAY as f32 * 1.5) as u64;
@@ -177,7 +176,7 @@ async fn mqtt_3_1_4_1() {
         ..Default::default()
     })
     .await;
-    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let mut stream = client::spawn(&local_addr).await;
 
     // Send an invalid connect packet and wait for an immediate disconnection
     // from the server.
@@ -240,7 +239,7 @@ async fn mqtt_3_1_4_2() {
 
     for (settings, connect, reason_code) in test_collection {
         let (_, _, server, local_addr, shutdown) = server::spawn(settings).await;
-        let mut stream = client::spawn(&local_addr).await.unwrap();
+        let mut stream = client::spawn(&local_addr).await;
 
         // Send an unsupported connect packet and wait for an immediate disconnection
         // from the server.
@@ -267,24 +266,15 @@ async fn mqtt_3_1_4_3() {
         ..Default::default()
     })
     .await;
-    let mut stream = client::spawn(&local_addr).await.unwrap();
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Using the first client, we send a Connect packet and wait for the ConnAck
     let connect = Connect {
         client_id: Some("Suzuki".into()),
         ..Default::default()
     };
 
-    // By unwrapping we ensure to panic! is the server disconnected
-    if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into())
-        .await
-        .unwrap()
-    {
-        assert_eq!(packet.reason_code, ReasonCode::Success);
-    } else {
-        panic!("Invalid packet type sent after Connect");
-    }
+    ////////////////////////////////////////////////////////////////////////////
+    // Using the first client, we send a Connect packet and wait for the ConnAck
+    let stream = client::connect(&local_addr, connect.clone()).await;
 
     ////////////////////////////////////////////////////////////////////////////
     // We spawn a new task which uses the first connection to wait for a
@@ -295,15 +285,7 @@ async fn mqtt_3_1_4_3() {
     ////////////////////////////////////////////////////////////////////////////
     // Meanwhile, we connect with a new connexion and the same client. This
     // must generate a Disconnect packet recevied by the first connection.
-    let mut stream = client::spawn(&local_addr).await.unwrap();
-    // Send a new connect packet
-    let packet = Packet::Connect(Connect {
-        client_id: Some("Suzuki".into()),
-        ..Default::default()
-    });
-    let mut buffer = Vec::new();
-    packet.encode(&mut buffer).await.unwrap();
-    while stream.write(&buffer).await.is_err() {}
+    client::connect(&local_addr, connect).await;
 
     // wait for receiving the Disconnect packet
     // If None, the operation was successful.
@@ -343,7 +325,7 @@ async fn mqtt_3_1_4_4_connect(
     };
 
     // First, we connect a client with a fixed id and wait for ACK
-    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let mut stream = client::spawn(&local_addr).await;
     if let Packet::ConnAck(packet) = client::send_waitback(&mut stream, connect.into())
         .await
         .unwrap()
@@ -366,7 +348,7 @@ async fn mqtt_3_1_4_5() {
         ..Default::default()
     })
     .await;
-    let mut stream = client::spawn(&local_addr).await.unwrap();
+    let mut stream = client::spawn(&local_addr).await;
 
     // Send an valid connect packet and wait for ACK 0
     if let Some(packet) =
@@ -415,7 +397,7 @@ async fn mqtt_3_1_4_6() {
         Packet::Auth(Default::default()),
     ];
     for second_packet in packets {
-        let mut stream = client::spawn(&local_addr).await.unwrap();
+        let mut stream = client::spawn(&local_addr).await;
 
         // Auth not supported, so we can reject a packet by providing one
         let rejected_connect = Connect {

@@ -6,6 +6,25 @@
 async fn mqtt_3_8_1_1() {
     // We will send any version of incorrect Fixed Headers and wait for the server's response
     // We will also check for the validity of the unique correct case
+    let fixed_headers = vec![
+        // SUBS_3210
+        (0b1000_0000, false),
+        (0b1000_0001, false),
+        (0b1000_0010, true), // This one is valid
+        (0b1000_0011, false),
+        (0b1000_0100, false),
+        (0b1000_0101, false),
+        (0b1000_0110, false),
+        (0b1000_0111, false),
+        (0b1000_1000, false),
+        (0b1000_1001, false),
+        (0b1000_1010, false),
+        (0b1000_1011, false),
+        (0b1000_1100, false),
+        (0b1000_1101, false),
+        (0b1000_1110, false),
+        (0b1000_1111, false),
+    ];
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -4,23 +4,39 @@ use async_std::{
     net::{SocketAddr, TcpStream},
     task,
 };
-use sage_mqtt::{Packet, ReasonCode};
+use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::Duration;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Create a valid TcpStream client for the current server
-pub async fn spawn(local_addr: &SocketAddr) -> Option<TcpStream> {
+pub async fn spawn(local_addr: &SocketAddr) -> TcpStream {
     // Makes 5 connexion attemps, every 1 second until a connexion is made, or
     // panic
     for _ in 0u8..5u8 {
         if let Ok(stream) = TcpStream::connect(*local_addr).await {
-            return Some(stream);
+            return stream;
         }
 
         task::sleep(Duration::from_secs(1)).await;
     }
 
-    None
+    panic!("Cannot spawn client after 5 attempts");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// Create a valid TcpStream client and send a connect request, returning the
+/// stream in case of success
+pub async fn connect(local_addr: &SocketAddr, connect: Connect) -> TcpStream {
+    let mut stream = spawn(&local_addr).await;
+    if let Packet::ConnAck(connack) = send_waitback(&mut stream, Packet::Connect(connect))
+        .await
+        .unwrap()
+    {
+        assert_eq!(connack.reason_code, ReasonCode::Success);
+    } else {
+        panic!("Expected CONNACK(Success) packet");
+    }
+    stream
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -77,25 +93,25 @@ pub enum DisPacket {
 /// In case of success, the function returns None. Any error is returns as
 /// an Some(String)
 pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<String> {
-    let delay_with_tolerance = Duration::from_secs(10);
+    let delay_with_tolerance = Duration::from_secs(TIMEOUT_DELAY as u64);
     let mut buf = vec![0u8; 1024];
 
     match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
         Err(e) => match e.kind() {
-            ErrorKind::TimedOut => Some("Server did not respond"),
-            _ => Some("IO Error"),
+            ErrorKind::TimedOut => Some(format!("Server did not respond")),
+            _ => Some(format!("IO Error")),
         },
         Ok(0) => {
             // Connexion shutdown with no disconnect
             match disconnect {
                 DisPacket::Ignore(_) | DisPacket::Forbid => None,
-                DisPacket::Force(_) => Some("DISCONNECT packet expected before close"),
+                DisPacket::Force(_) => Some(format!("DISCONNECT packet expected before close")),
             }
         }
         Ok(_) => {
             // DISCONNECT packet sent before shut down
             if let DisPacket::Forbid = disconnect {
-                Some("Server should have closed with no prior packet")
+                Some(format!("Server should have closed with no prior packet"))
             } else {
                 // disconnect can only be Ignore of Force(_) here.
                 // In both cases, the optionally received packet MUST be a DISCONNECT
@@ -106,7 +122,10 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<
                         DisPacket::Force(Some(rc)) | DisPacket::Ignore(Some(rc))
                             if rc != packet.reason_code =>
                         {
-                            Some("Incorrect reason_code sent for DISCONNECT")
+                            Some(format!(
+                                "Expected reason code '{:?}', got '{:?}'",
+                                rc, packet.reason_code
+                            ))
                         }
                         _ => {
                             let mut buf = vec![0u8; 1024];
@@ -114,21 +133,20 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<
                             // Thus we only expect a Ok(0)
                             match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
                                 Err(e) => match e.kind() {
-                                    ErrorKind::TimedOut => {
-                                        Some("Server did not respond after DISCONNECT packet")
-                                    }
-                                    _ => Some("IO Error"),
+                                    ErrorKind::TimedOut => Some(format!(
+                                        "Server did not respond after DISCONNECT packet"
+                                    )),
+                                    _ => Some(format!("IO Error")),
                                 },
                                 Ok(0) => None,
-                                Ok(_) => Some("Unexpected packet send instead of close"),
+                                Ok(_) => Some(format!("Unexpected packet send instead of close")),
                             }
                         }
                     }
                 } else {
-                    Some("Only DISCONNECT packet is allowed before closing")
+                    Some(format!("Only DISCONNECT packet is allowed before closing"))
                 }
             }
         }
     }
-    .map(Into::into) // Converts Option<&str> into Option<String>
 }
