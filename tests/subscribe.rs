@@ -1,16 +1,8 @@
 //! SUBSCRIBE Actions requirements
-//use async_std::{
-//    io::prelude::*,
-//    net::{SocketAddr, TcpStream},
-//    task,
-//};
-//
-//use sage_broker::BrokerSettings;
-//use sage_mqtt::{Connect, Packet, ReasonCode};
-//use std::time::Instant;
-//pub mod utils;
-//use utils::client::DisPacket;
-//pub use utils::*;
+use sage_broker::BrokerSettings;
+use sage_mqtt::{Packet, ReasonCode};
+pub mod utils;
+pub use utils::*;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.1-1: Bits 3,2,1 and 0 of the Fixed Header of the SUBSCRIBE packet are reserved and
@@ -20,6 +12,51 @@
 async fn mqtt_3_8_1_1() {
     // We will send any version of incorrect Fixed Headers and wait for the server's response
     // We will also check for the validity of the unique correct case
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let fixed_headers = vec![
+        // SUBS_3210
+        (0b1000_0000, ReasonCode::MalformedPacket),
+        (0b1000_0001, ReasonCode::MalformedPacket),
+        (0b1000_0010, ReasonCode::ProtocolError), // This one is valid
+        (0b1000_0011, ReasonCode::MalformedPacket),
+        (0b1000_0100, ReasonCode::MalformedPacket),
+        (0b1000_0101, ReasonCode::MalformedPacket),
+        (0b1000_0110, ReasonCode::MalformedPacket),
+        (0b1000_0111, ReasonCode::MalformedPacket),
+        (0b1000_1000, ReasonCode::MalformedPacket),
+        (0b1000_1001, ReasonCode::MalformedPacket),
+        (0b1000_1010, ReasonCode::MalformedPacket),
+        (0b1000_1011, ReasonCode::MalformedPacket),
+        (0b1000_1100, ReasonCode::MalformedPacket),
+        (0b1000_1101, ReasonCode::MalformedPacket),
+        (0b1000_1110, ReasonCode::MalformedPacket),
+        (0b1000_1111, ReasonCode::MalformedPacket),
+    ];
+
+    for (fixed_header, expected) in fixed_headers {
+        let mut stream = client::connect(&local_addr, Default::default()).await;
+
+        let mut buffer = Vec::new();
+        Packet::Subscribe(Default::default())
+            .encode(&mut buffer)
+            .await
+            .unwrap();
+        buffer[0] = fixed_header; // Invalidate the packet
+
+        if let Some(packet) = client::send_waitback_data(&mut stream, buffer).await {
+            if let Packet::ConnAck(packet) = packet {
+                assert_eq!(packet.reason_code, expected);
+            } else {
+                panic!("Expected CONNACK after SUBSCRIBE");
+            }
+        }
+    }
+
+    server::stop(shutdown, server).await;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
