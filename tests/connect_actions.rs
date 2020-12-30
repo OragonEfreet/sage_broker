@@ -5,17 +5,17 @@ use async_std::{
     net::{SocketAddr, TcpStream},
     task,
 };
+
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::Instant;
-
 pub mod utils;
 use utils::client::DisPacket;
 pub use utils::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-/// If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST
+/// MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST
 /// discard any existing Session and start a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
@@ -59,7 +59,7 @@ async fn mqtt_3_1_2_4() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated
+/// MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated
 /// with the Client Identifier, the Server MUST resume communications with the Client based on
 /// state from the existing Session.
 #[async_std::test]
@@ -101,7 +101,7 @@ async fn mqtt_3_1_2_5() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated
+/// MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated
 /// with the Client Identifier, the Server MUST create a new Session.
 /// (implicitely: other sessions exist)
 #[async_std::test]
@@ -137,9 +137,11 @@ async fn mqtt_3_1_2_6() {
 
     server::stop(shutdown, server).await;
 }
-/// > If the Server does not receive a CONNECT packet within a reasonable amount
-/// > of time after the Network Connection is established
-/// > the Server SHOULD close the Network Connection.
+
+///////////////////////////////////////////////////////////////////////////////
+/// If the Server does not receive a CONNECT packet within a reasonable amount
+/// of time after the Network Connection is established
+/// the Server SHOULD close the Network Connection.
 #[async_std::test]
 async fn connect_timeout() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -166,6 +168,8 @@ async fn connect_timeout() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the format described in
+/// section 3.1 and close the Network Connection if it does not match.
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -314,6 +318,7 @@ async fn mqtt_3_1_4_3() {
 // - [MQTT-3.1.2-6]: mqtt_3_1_2_6()
 /// This function is used by all three functions to create a client, connect to
 /// it with a given Clean Start option
+/// It is not a test by itself
 async fn mqtt_3_1_4_4_connect(
     client_id: &str,
     local_addr: &SocketAddr,
@@ -344,4 +349,32 @@ async fn mqtt_3_1_4_4_connect(
         panic!("Invalid packet type sent after Connect");
     }
     stream
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing
+// a 0x00 (Success) Reason Code.
+#[async_std::test]
+async fn mqtt_3_1_4_5() {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let mut stream = client::spawn(&local_addr).await.unwrap();
+
+    // Send an valid connect packet and wait for ACK 0
+    if let Some(packet) =
+        client::send_waitback(&mut stream, Packet::Connect(Default::default()), false).await
+    {
+        if let Packet::ConnAck(packet) = packet {
+            assert_eq!(packet.reason_code, ReasonCode::Success);
+        } else {
+            panic!("Expected CONNACK(Success) packet after CONNECT");
+        }
+    } else {
+        panic!("Expected packet after CONNECT");
+    }
+
+    server::stop(shutdown, server).await;
 }
