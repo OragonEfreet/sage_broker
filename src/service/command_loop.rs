@@ -22,7 +22,7 @@ pub async fn command_loop<B>(
     settings: Arc<BrokerSettings>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
-) -> (B, CommandReceiver)
+) -> CommandReceiver
 where
     B: SessionsBackEnd + Send,
 {
@@ -35,7 +35,7 @@ where
     }
     info!("Stop command loop");
 
-    (sessions, from_command_channel)
+    from_command_channel
 }
 
 async fn control_packet<B>(

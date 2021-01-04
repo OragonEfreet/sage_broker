@@ -1,6 +1,5 @@
 - [ ] Backlog
   - [ ] backend_refactor
-    - [ ] make command loop only return receiver
     - [ ] Sessions access refactor
       - [ ] Remove genericity from backend
         - [ ] temporary put Sessions::* in public and fix tests
@@ -12,6 +11,7 @@
       - [ ] public access using sessions() and sessions_mut()
       - [ ] Derives Clone (will be useful for Tests and public concurrent access)
       - [ ] Backend is given in command loop instead of Sessions, as a raw Backend (now Arc or RwLock)
+    - [X] make command loop only return receiver
   - [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
   - [ ] Commands used to interface with the Command loop 
   - [ ] Check for documentation of server.rs and mod.rs

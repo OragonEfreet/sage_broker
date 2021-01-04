@@ -12,7 +12,7 @@ pub async fn spawn(
 ) -> (
     Arc<BrokerSettings>,
     TestSessions,
-    JoinHandle<(TestSessions, CommandReceiver)>,
+    JoinHandle<CommandReceiver>,
     SocketAddr,
     Trigger,
 ) {
@@ -33,10 +33,7 @@ pub async fn spawn(
     (settings, sessions, service_task, local_addr, shutdown)
 }
 
-pub async fn stop(
-    trigger: Trigger,
-    service: JoinHandle<(TestSessions, CommandReceiver)>,
-) -> (TestSessions, CommandReceiver) {
+pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> CommandReceiver {
     trigger.fire().await;
     service.await
 }
@@ -46,7 +43,7 @@ async fn run_server(
     sessions: TestSessions,
     settings: Arc<BrokerSettings>,
     shutdown: Trigger,
-) -> (TestSessions, CommandReceiver) {
+) -> CommandReceiver {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
         sessions,
