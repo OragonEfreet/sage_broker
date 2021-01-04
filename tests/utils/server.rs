@@ -1,6 +1,6 @@
 use async_std::{
     net::{SocketAddr, TcpListener},
-    sync::Arc,
+    sync::{Arc, RwLock},
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
@@ -10,7 +10,7 @@ pub async fn spawn(
     settings: BrokerSettings,
 ) -> (
     Arc<BrokerSettings>,
-    Sessions,
+    Arc<RwLock<Sessions>>,
     JoinHandle<CommandReceiver>,
     SocketAddr,
     Trigger,
@@ -21,7 +21,7 @@ pub async fn spawn(
 
     let shutdown = Trigger::default();
 
-    let sessions = Sessions::default();
+    let sessions = Arc::new(RwLock::new(Sessions::default()));
     let service_task = task::spawn(run_server(
         listener,
         sessions.clone(),
@@ -39,7 +39,7 @@ pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> Com
 
 async fn run_server(
     listener: TcpListener,
-    sessions: Sessions,
+    sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
     shutdown: Trigger,
 ) -> CommandReceiver {

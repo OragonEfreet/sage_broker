@@ -40,6 +40,7 @@ pub async fn connect(local_addr: &SocketAddr, connect: Connect) -> TcpStream {
 }
 
 /// The kind of response send by send_waitback_data and send_waitback
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum Response {
     /// The server did not send anything after a given delay
@@ -108,20 +109,20 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<
 
     match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
         Err(e) => match e.kind() {
-            ErrorKind::TimedOut => Some(format!("Server did not respond")),
-            _ => Some(format!("IO Error")),
+            ErrorKind::TimedOut => Some("Server did not respond".to_string()),
+            _ => Some("IO Error".to_string()),
         },
         Ok(0) => {
             // Connexion shutdown with no disconnect
             match disconnect {
                 DisPacket::Ignore(_) | DisPacket::Forbid => None,
-                DisPacket::Force(_) => Some(format!("DISCONNECT packet expected before close")),
+                DisPacket::Force(_) => Some("DISCONNECT packet expected before close".to_string()),
             }
         }
         Ok(_) => {
             // DISCONNECT packet sent before shut down
             if let DisPacket::Forbid = disconnect {
-                Some(format!("Server should have closed with no prior packet"))
+                Some("Server should have closed with no prior packet".to_string())
             } else {
                 // disconnect can only be Ignore of Force(_) here.
                 // In both cases, the optionally received packet MUST be a DISCONNECT
@@ -143,18 +144,21 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<
                             // Thus we only expect a Ok(0)
                             match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
                                 Err(e) => match e.kind() {
-                                    ErrorKind::TimedOut => Some(format!(
+                                    ErrorKind::TimedOut => Some(
                                         "Server did not respond after DISCONNECT packet"
-                                    )),
-                                    _ => Some(format!("IO Error")),
+                                            .to_string(),
+                                    ),
+                                    _ => Some("IO Error".to_string()),
                                 },
                                 Ok(0) => None,
-                                Ok(_) => Some(format!("Unexpected packet send instead of close")),
+                                Ok(_) => {
+                                    Some("Unexpected packet send instead of close".to_string())
+                                }
                             }
                         }
                     }
                 } else {
-                    Some(format!("Only DISCONNECT packet is allowed before closing"))
+                    Some("Only DISCONNECT packet is allowed before closing".to_string())
                 }
             }
         }

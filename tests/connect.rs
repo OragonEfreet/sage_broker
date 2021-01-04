@@ -27,7 +27,7 @@ async fn mqtt_3_1_2_4() {
 
     // Some checks on the state of the current database
     let session_id = {
-        let db = sessions.db.read().await;
+        let db = &sessions.read().await.db;
         assert_eq!(db.len(), 1); // We have 1 client exactly
         let session = db[0].read().await;
         assert_eq!(session.client_id(), client_id);
@@ -46,7 +46,7 @@ async fn mqtt_3_1_2_4() {
         panic!(what);
     }
 
-    let db = sessions.db.read().await;
+    let db = &sessions.read().await.db;
     assert_eq!(db.len(), 1); // Because previous session was taken over
     let session = db[0].read().await;
 
@@ -72,7 +72,7 @@ async fn mqtt_3_1_2_5() {
 
     let session_id = {
         // Search db for the current connexion
-        let db = sessions.db.read().await;
+        let db = &sessions.read().await.db;
         assert_eq!(db.len(), 1);
         let session = db[0].read().await;
         assert_eq!(session.client_id(), client_id);
@@ -88,7 +88,7 @@ async fn mqtt_3_1_2_5() {
         panic!(what);
     }
 
-    let db = sessions.db.read().await;
+    let db = &sessions.read().await.db;
     assert_eq!(db.len(), 1); // Because previous session was taken over
     let session = db[0].read().await;
 
@@ -115,7 +115,7 @@ async fn mqtt_3_1_2_6() {
 
     let session_id = {
         // Search db for the current connexion
-        let db = sessions.db.read().await;
+        let db = &sessions.read().await.db;
         assert_eq!(db.len(), 1);
         let session = db[0].read().await;
         assert_eq!(session.client_id(), first_client_id);
@@ -125,7 +125,7 @@ async fn mqtt_3_1_2_6() {
     // Let's do the same, forcing clean start to 0
     mqtt_3_1_4_4_connect(&second_client_id, &local_addr, Some(false)).await;
 
-    let db = sessions.db.read().await;
+    let db = &sessions.read().await.db;
     assert_eq!(db.len(), 2); // Because former session has different ID
     let session = db[1].read().await; // The last created session is at 1
 

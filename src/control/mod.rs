@@ -20,7 +20,7 @@ pub trait Control {
     async fn control(
         self,
         settings: &Arc<BrokerSettings>,
-        sessions: &mut Sessions,
+        sessions: &Arc<RwLock<Sessions>>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action;
 }

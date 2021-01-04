@@ -10,7 +10,7 @@ impl Control for Subscribe {
     async fn control(
         self,
         _: &Arc<BrokerSettings>,
-        _: &mut Sessions,
+        _: &Arc<RwLock<Sessions>>,
         _: &Arc<RwLock<Peer>>,
     ) -> Action {
         let suback = SubAck {

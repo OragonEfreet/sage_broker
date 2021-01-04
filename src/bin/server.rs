@@ -2,7 +2,7 @@ use async_std::net::{TcpListener, ToSocketAddrs};
 use async_std::{sync::Arc, task};
 use futures::channel::mpsc;
 use log::{error, info};
-use sage_broker::{service, BrokerSettings, Sessions, Trigger};
+use sage_broker::{service, BrokerSettings, Trigger};
 
 #[async_std::main]
 async fn main() {
@@ -20,7 +20,7 @@ async fn main() {
         let (command_sender, command_receiver) = mpsc::unbounded();
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
-            Sessions::default(),
+            Default::default(),
             settings.clone(),
             command_receiver,
             shutdown.clone(),

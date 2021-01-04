@@ -16,7 +16,7 @@ use sage_mqtt::{Disconnect, Packet, ReasonCode};
 /// The command loop ends.
 /// Eventually, this task may be a spawner for other tasks
 pub async fn command_loop(
-    mut sessions: Sessions,
+    sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
@@ -26,7 +26,7 @@ pub async fn command_loop(
         // Currently can only be Command::Control
 
         let Command::Control(peer, packet) = command;
-        control_packet(&settings, &mut sessions, packet, peer, &shutdown).await;
+        control_packet(&settings, &sessions, packet, peer, &shutdown).await;
     }
     info!("Stop command loop");
 
@@ -35,7 +35,7 @@ pub async fn command_loop(
 
 async fn control_packet(
     settings: &Arc<BrokerSettings>,
-    sessions: &mut Sessions,
+    sessions: &Arc<RwLock<Sessions>>,
     packet: Packet,
     source: Arc<RwLock<Peer>>,
     shutdown: &Trigger,
