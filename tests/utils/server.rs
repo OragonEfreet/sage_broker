@@ -1,17 +1,16 @@
-use crate::utils::TestSessions;
 use async_std::{
     net::{SocketAddr, TcpListener},
     sync::Arc,
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
-use sage_broker::{service, BrokerSettings, CommandReceiver, Trigger};
+use sage_broker::{service, BrokerSettings, CommandReceiver, Sessions, Trigger};
 
 pub async fn spawn(
     settings: BrokerSettings,
 ) -> (
     Arc<BrokerSettings>,
-    TestSessions,
+    Sessions,
     JoinHandle<CommandReceiver>,
     SocketAddr,
     Trigger,
@@ -22,7 +21,7 @@ pub async fn spawn(
 
     let shutdown = Trigger::default();
 
-    let sessions = TestSessions::default();
+    let sessions = Sessions::default();
     let service_task = task::spawn(run_server(
         listener,
         sessions.clone(),
@@ -40,7 +39,7 @@ pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> Com
 
 async fn run_server(
     listener: TcpListener,
-    sessions: TestSessions,
+    sessions: Sessions,
     settings: Arc<BrokerSettings>,
     shutdown: Trigger,
 ) -> CommandReceiver {

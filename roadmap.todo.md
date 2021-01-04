@@ -1,8 +1,9 @@
 - [ ] Backlog
   - [ ] backend_refactor
     - [ ] Sessions access refactor
-      - [ ] Remove genericity from backend
-        - [ ] temporary put Sessions::* in public and fix tests
+      - [ ] Remove TestSession and use Sessions instead
+        - [ ] Remove genericity from backend
+        - [X] temporary put Sessions::* in public and fix tests
       - [ ] Make session explicitely Arc<RwLock<_>>
       - [ ] Provide encapsulation functions allowing tests to work without direct access
       - [ ] remove public access to Sessions
