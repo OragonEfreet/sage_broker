@@ -30,7 +30,7 @@ impl Peer {
     }
 
     pub fn bind(&mut self, session: Arc<RwLock<Session>>) {
-        self.session = Some(session.clone());
+        self.session = Some(session);
     }
 
     pub fn session(&self) -> &Option<Arc<RwLock<Session>>> {

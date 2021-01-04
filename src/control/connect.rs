@@ -1,18 +1,14 @@
-use crate::{Action, BrokerSettings, Control, Peer, Session, SessionsBackEnd};
+use crate::{Action, BrokerSettings, Control, Peer, Session, Sessions};
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use sage_mqtt::{Connect, Disconnect, ReasonCode};
-use std::marker::Send;
 
 #[async_trait]
-impl<B> Control<B> for Connect
-where
-    B: SessionsBackEnd + Send,
-{
+impl Control for Connect {
     async fn control(
         self,
         settings: &Arc<BrokerSettings>,
-        sessions: &mut B,
+        sessions: &mut Sessions,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {
         // First, we prepare an first connack using broker policy

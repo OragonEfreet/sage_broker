@@ -1,19 +1,15 @@
-use crate::{Action, BrokerSettings, Control, Peer, SessionsBackEnd};
+use crate::{Action, BrokerSettings, Control, Peer, Sessions};
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use log::error;
 use sage_mqtt::{ConnAck, Packet, PingReq, ReasonCode};
-use std::marker::Send;
 
 #[async_trait]
-impl<B> Control<B> for Packet
-where
-    B: SessionsBackEnd + Send,
-{
+impl Control for Packet {
     async fn control(
         self,
         settings: &Arc<BrokerSettings>,
-        sessions: &mut B,
+        sessions: &mut Sessions,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {
         match self {

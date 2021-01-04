@@ -1,9 +1,8 @@
-use crate::{Session, SessionsBackEnd};
+use crate::Session;
 use async_std::{
     sync::{Arc, RwLock},
     task,
 };
-use async_trait::async_trait;
 
 /// Holds sessions manipulated from the Command Loop
 #[derive(Default, Clone)]
@@ -12,11 +11,10 @@ pub struct Sessions {
     pub db: Arc<RwLock<Vec<Arc<RwLock<Session>>>>>,
 }
 
-#[async_trait]
-impl SessionsBackEnd for Sessions {
+impl Sessions {
     /// Searches for the Session at given index and returns it.
     /// If `take`  is set, the session will be extracted from the database
-    async fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
+    pub async fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
         let mut db = self.db.write().await;
         if let Some(index) = db
             .iter()
@@ -29,7 +27,7 @@ impl SessionsBackEnd for Sessions {
     }
 
     /// Add the given session into the database
-    async fn add(&mut self, session: Arc<RwLock<Session>>) {
+    pub async fn add(&mut self, session: Arc<RwLock<Session>>) {
         self.db.write().await.push(session);
     }
 }

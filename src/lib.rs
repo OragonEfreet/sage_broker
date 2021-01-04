@@ -9,7 +9,6 @@ mod control;
 mod peer;
 mod session;
 mod sessions;
-mod sessions_back_end;
 mod trigger;
 
 /// All functions related to service control.
@@ -22,7 +21,6 @@ use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::Session;
 pub use sessions::Sessions;
-pub use sessions_back_end::SessionsBackEnd;
 pub use trigger::Trigger;
 /// The MPSC sender for controlling a running server
 pub type CommandSender = mpsc::UnboundedSender<Command>;
