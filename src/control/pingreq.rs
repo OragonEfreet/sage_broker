@@ -6,7 +6,7 @@ use sage_mqtt::{PingReq, PingResp};
 /// Simply returns a PingResp package
 #[async_trait]
 impl Control for PingReq {
-    async fn control(self, _: &Arc<BrokerSettings>, _: &BackEnd, _: &Arc<RwLock<Peer>>) -> Action {
+    async fn control(self, _: &BackEnd, _: &Arc<BrokerSettings>, _: &Arc<RwLock<Peer>>) -> Action {
         Action::Respond(PingResp.into())
     }
 }

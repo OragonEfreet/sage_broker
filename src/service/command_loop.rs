@@ -61,7 +61,7 @@ async fn control_packet(
             .into(),
         )
     } else {
-        packet.control(&settings, backend, &source).await
+        packet.control(backend, &settings, &source).await
     };
     match action {
         Action::Respond(packet) => source.write().await.send(packet).await,

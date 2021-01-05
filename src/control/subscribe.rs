@@ -7,7 +7,7 @@ use sage_mqtt::{SubAck, Subscribe};
 /// With the correct packet identifier
 #[async_trait]
 impl Control for Subscribe {
-    async fn control(self, _: &Arc<BrokerSettings>, _: &BackEnd, _: &Arc<RwLock<Peer>>) -> Action {
+    async fn control(self, _: &BackEnd, _: &Arc<BrokerSettings>, _: &Arc<RwLock<Peer>>) -> Action {
         let suback = SubAck {
             packet_identifier: self.packet_identifier,
             ..Default::default()

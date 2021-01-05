@@ -19,8 +19,8 @@ pub enum Action {
 pub trait Control {
     async fn control(
         self,
+        backend: &BackEnd,
         settings: &Arc<BrokerSettings>,
-        backen: &BackEnd,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action;
 }
