@@ -5,7 +5,7 @@ use async_std::{
 };
 
 /// Holds sessions manipulated from the Command Loop
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct Sessions {
     db: Vec<Arc<RwLock<Session>>>,
 }

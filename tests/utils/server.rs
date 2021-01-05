@@ -1,16 +1,16 @@
 use async_std::{
     net::{SocketAddr, TcpListener},
-    sync::{Arc, RwLock},
+    sync::Arc,
     task::{self, JoinHandle},
 };
 use futures::channel::mpsc;
-use sage_broker::{service, BrokerSettings, CommandReceiver, Sessions, Trigger};
+use sage_broker::{service, BackEnd, BrokerSettings, CommandReceiver, Trigger};
 
 pub async fn spawn(
     settings: BrokerSettings,
 ) -> (
     Arc<BrokerSettings>,
-    Arc<RwLock<Sessions>>,
+    BackEnd,
     JoinHandle<CommandReceiver>,
     SocketAddr,
     Trigger,
@@ -21,15 +21,15 @@ pub async fn spawn(
 
     let shutdown = Trigger::default();
 
-    let sessions = Arc::new(RwLock::new(Sessions::default()));
+    let backend = BackEnd::default();
     let service_task = task::spawn(run_server(
         listener,
-        sessions.clone(),
+        backend.clone(),
         settings.clone(),
         shutdown.clone(),
     ));
 
-    (settings, sessions, service_task, local_addr, shutdown)
+    (settings, backend, service_task, local_addr, shutdown)
 }
 
 pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> CommandReceiver {
@@ -39,13 +39,13 @@ pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> Com
 
 async fn run_server(
     listener: TcpListener,
-    sessions: Arc<RwLock<Sessions>>,
+    backend: BackEnd,
     settings: Arc<BrokerSettings>,
     shutdown: Trigger,
 ) -> CommandReceiver {
     let (command_sender, command_receiver) = mpsc::unbounded();
     let command_loop = task::spawn(service::command_loop(
-        sessions,
+        backend,
         settings.clone(),
         command_receiver,
         shutdown.clone(),

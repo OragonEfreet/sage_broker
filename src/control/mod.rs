@@ -1,4 +1,4 @@
-use crate::{BrokerSettings, Peer, Sessions};
+use crate::{BackEnd, BrokerSettings, Peer};
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use sage_mqtt::Packet;
@@ -20,7 +20,7 @@ pub trait Control {
     async fn control(
         self,
         settings: &Arc<BrokerSettings>,
-        sessions: &Arc<RwLock<Sessions>>,
+        backen: &BackEnd,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action;
 }

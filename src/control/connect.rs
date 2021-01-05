@@ -1,4 +1,4 @@
-use crate::{Action, BrokerSettings, Control, Peer, Session, Sessions};
+use crate::{Action, BackEnd, BrokerSettings, Control, Peer, Session};
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use sage_mqtt::{Connect, Disconnect, ReasonCode};
@@ -8,7 +8,7 @@ impl Control for Connect {
     async fn control(
         self,
         settings: &Arc<BrokerSettings>,
-        sessions: &Arc<RwLock<Sessions>>,
+        backend: &BackEnd,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {
         // First, we prepare an first connack using broker policy
@@ -22,7 +22,7 @@ impl Control for Connect {
                 .or(self.client_id)
                 .unwrap();
 
-            let mut sessions = sessions.write().await;
+            let mut sessions = backend.sessions_mut().await;
 
             let clean_start = self.clean_start;
             // Session creation/overtaking

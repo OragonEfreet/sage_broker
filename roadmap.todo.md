@@ -1,18 +1,4 @@
 - [ ] Backlog
-  - [ ] backend_refactor
-    - [ ] Sessions access refactor
-      - [X] Remove TestSession and use Sessions instead
-        - [X] temporary put Sessions::* in public and fix tests
-        - [X] Remove genericity from backend
-      - [X] Make session explicitely Arc<RwLock<_>>
-      - [X] remove public access to Sessions
-        - [X] Provide encapsulation functions allowing tests to work without direct access
-    - [ ] Create the BackEnd struct
-      - [ ] Contains the Sessions intance as an Arc<RwLock<Sessions>>
-      - [ ] public access using sessions() and sessions_mut()
-      - [ ] Derives Clone (will be useful for Tests and public concurrent access)
-      - [ ] Backend is given in command loop instead of Sessions, as a raw Backend (now Arc or RwLock)
-    - [X] make command loop only return receiver
   - [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
   - [ ] Commands used to interface with the Command loop 
   - [ ] Check for documentation of server.rs and mod.rs
@@ -21,6 +7,20 @@
   - [X] Create control internal module with
     - [X] Control Trait
     - [X] impl for each Packet type
+  - [X] backend_refactor
+    - [X] make command loop only return receiver
+    - [X] Create the BackEnd struct
+      - [X] Contains the Sessions intance as an Arc<RwLock<Sessions>>
+      - [X] public access using sessions() and sessions_mut()
+      - [X] Derives Clone (will be useful for Tests and public concurrent access)
+      - [X] Backend is given in command loop instead of Sessions, as a raw Backend (now Arc or RwLock)
+    - [X] Sessions access refactor
+      - [X] Remove TestSession and use Sessions instead
+        - [X] temporary put Sessions::* in public and fix tests
+        - [X] Remove genericity from backend
+      - [X] Make session explicitely Arc<RwLock<_>>
+      - [X] remove public access to Sessions
+        - [X] Provide encapsulation functions allowing tests to work without direct access
 - [ ] MQTT Server Conformance Clause
   - [ ] ! SUBSCRIBE Actions
     - [ ] MQTT-3.8.4-3: If a Server receives a SUBSCRIBE packet containing a Topic Filter that is identical to a Non‑shared Subscription’s Topic Filter for the current Session then it MUST replace that existing Subscription with a new Subscription.
