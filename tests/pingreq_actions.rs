@@ -15,7 +15,7 @@ async fn mqtt_3_12_4_1() {
     })
     .await;
 
-    let mut stream = client::connect(&local_addr, Default::default()).await;
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
 
     assert!(matches!(
         client::send_waitback(&mut stream, Packet::PingReq).await,

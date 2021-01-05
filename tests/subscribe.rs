@@ -22,7 +22,7 @@ async fn mqtt_3_8_1_1() {
 
     ////////////////////////////////////////////////////////////////////////////
     let fixed_header = 0b1000_0010;
-    let mut stream = client::connect(&local_addr, Default::default()).await;
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
 
     let mut buffer = Vec::new();
     Packet::Subscribe(Subscribe {
@@ -60,7 +60,7 @@ async fn mqtt_3_8_1_1() {
     ];
 
     for fixed_header in invalid_fixed_headers {
-        let mut stream = client::connect(&local_addr, Default::default()).await;
+        let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
 
         let mut buffer = Vec::new();
         Packet::Subscribe(Default::default())
@@ -122,22 +122,15 @@ async fn mqtt_3_8_4_1() {
         ..Default::default()
     })
     .await;
-    let mut stream = client::connect(&local_addr, Default::default()).await;
-
-    let mut buffer = Vec::new();
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
 
     let subscribe = Subscribe {
         subscriptions: vec![Default::default()],
         ..Default::default()
     };
 
-    Packet::Subscribe(subscribe)
-        .encode(&mut buffer)
-        .await
-        .unwrap();
-
     assert!(matches!(
-        client::send_waitback_data(&mut stream, buffer).await,
+        client::send_waitback(&mut stream, subscribe.into()).await,
         Response::Packet(Packet::SubAck(_))
     ));
 
@@ -155,9 +148,8 @@ async fn mqtt_3_8_4_2() {
         ..Default::default()
     })
     .await;
-    let mut stream = client::connect(&local_addr, Default::default()).await;
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
     for _ in 0..100 {
-        let mut buffer = Vec::new();
         let packet_identifier = rand::random();
 
         let subscribe = Subscribe {
@@ -166,13 +158,8 @@ async fn mqtt_3_8_4_2() {
             ..Default::default()
         };
 
-        Packet::Subscribe(subscribe)
-            .encode(&mut buffer)
-            .await
-            .unwrap();
-
         if let Response::Packet(Packet::SubAck(suback)) =
-            client::send_waitback_data(&mut stream, buffer).await
+            client::send_waitback(&mut stream, subscribe.into()).await
         {
             assert_eq!(suback.packet_identifier, packet_identifier);
         } else {
@@ -188,7 +175,40 @@ async fn mqtt_3_8_4_2() {
 /// identical to a Non‑shared Subscription’s Topic Filter for the current Session then it MUST
 /// replace that existing Subscription with a new Subscription.
 #[async_std::test]
-async fn mqtt_3_8_4_3() {}
+async fn mqtt_3_8_4_3() {
+    let topic = "Topic1";
+    let (_, backend, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
+    let sessions = backend.sessions().await;
+    let session = sessions.get(&client_id.unwrap()).unwrap();
+
+    // Send twice the same topic sub. Each time check only 1 sub exist within
+    // the client
+    for _ in 0..2 {
+        let subscribe = Subscribe {
+            subscriptions: vec![(topic.into(), Default::default())],
+            ..Default::default()
+        };
+
+        assert!(matches!(
+            client::send_waitback(&mut stream, subscribe.into()).await,
+            Response::Packet(Packet::SubAck(_))
+        ));
+
+        {
+            let session = session.read().await;
+            let subs = session.subs();
+            assert_eq!(subs.len(), 1);
+            assert!(subs.contains(topic));
+        }
+    }
+
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-4: If the Retain Handling option is 0, any existing retained messages matching the

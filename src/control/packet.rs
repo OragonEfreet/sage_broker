@@ -17,7 +17,7 @@ impl Control for Packet {
             Packet::PingReq => PingReq.control(backend, settings, peer).await,
             Packet::Connect(packet) => packet.control(backend, settings, peer).await,
             _ => {
-                error!("Unsupported packet");
+                error!("Unsupported packet: {:?}", self);
                 Action::RespondAndDisconnect(
                     ConnAck {
                         reason_code: ReasonCode::ImplementationSpecificError,

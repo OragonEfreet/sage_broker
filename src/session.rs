@@ -2,6 +2,7 @@ use crate::Peer;
 use async_std::sync::{Arc, RwLock, Weak};
 use log::info;
 use nanoid::nanoid;
+use std::collections::HashSet;
 
 /// Represents a client and holds all of its data, may it be active or not.
 /// If the client is connected, `peer` is used to retrieve its information and
@@ -11,6 +12,7 @@ pub struct Session {
     id: String,
     client_id: String,
     peer: Weak<RwLock<Peer>>,
+    subs: HashSet<String>,
 }
 
 impl Session {
@@ -23,6 +25,7 @@ impl Session {
             id,
             client_id: client_id.into(),
             peer: Arc::downgrade(peer),
+            subs: Default::default(),
         }
     }
 
@@ -46,6 +49,18 @@ impl Session {
     /// If a peer was already set, it is unlinked
     pub fn set_peer(&mut self, peer: &Arc<RwLock<Peer>>) {
         self.peer = Arc::downgrade(peer);
+    }
+
+    /// Returns the list of subscriptions
+    pub fn subs(&self) -> &HashSet<String> {
+        &(self.subs)
+    }
+
+    /// Creates a new subcription.
+    /// If the topic was already used (replacement), returns false,
+    /// otherwise true
+    pub fn subscribe(&mut self, topic: &str) -> bool {
+        self.subs.insert(topic.into())
     }
 }
 

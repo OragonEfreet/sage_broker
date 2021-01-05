@@ -26,17 +26,17 @@ pub async fn spawn(local_addr: &SocketAddr) -> TcpStream {
 ///////////////////////////////////////////////////////////////////////////////
 /// Create a valid TcpStream client and send a connect request, returning the
 /// stream in case of success
-pub async fn connect(local_addr: &SocketAddr, connect: Connect) -> TcpStream {
+pub async fn connect(local_addr: &SocketAddr, connect: Connect) -> (TcpStream, Option<String>) {
     let mut stream = spawn(&local_addr).await;
 
     if let Response::Packet(Packet::ConnAck(connack)) =
         send_waitback(&mut stream, Packet::Connect(connect)).await
     {
         assert_eq!(connack.reason_code, ReasonCode::Success);
+        (stream, connack.assigned_client_id.clone())
     } else {
         panic!("Expected CONNACK(Success) packet");
     }
-    stream
 }
 
 /// The kind of response send by send_waitback_data and send_waitback

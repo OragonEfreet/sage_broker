@@ -288,7 +288,7 @@ async fn mqtt_3_1_4_3() {
 
     ////////////////////////////////////////////////////////////////////////////
     // Using the first client, we send a Connect packet and wait for the ConnAck
-    let stream = client::connect(&local_addr, connect.clone()).await;
+    let (stream, _) = client::connect(&local_addr, connect.clone()).await;
 
     ////////////////////////////////////////////////////////////////////////////
     // We spawn a new task which uses the first connection to wait for a
