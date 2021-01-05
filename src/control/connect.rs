@@ -22,11 +22,13 @@ impl Control for Connect {
                 .or(self.client_id)
                 .unwrap();
 
+            let mut sessions = sessions.write().await;
+
             let clean_start = self.clean_start;
             // Session creation/overtaking
             // First, we get the may be existing session from the db:
             let session = {
-                if let Some(session) = sessions.write().await.take(&client_id).await {
+                if let Some(session) = sessions.take(&client_id) {
                     // If the existing session has a peer, it'll be disconnected with takeover
                     if let Some(peer) = session.read().await.peer() {
                         peer.write()
@@ -56,7 +58,7 @@ impl Control for Connect {
                     Arc::new(RwLock::new(Session::new(&client_id, peer)))
                 }
             };
-            sessions.write().await.add(session.clone()).await;
+            sessions.add(session.clone());
             peer.write().await.bind(session);
 
             Action::Respond(connack.into())

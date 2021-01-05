@@ -23,7 +23,7 @@ impl Sessions {
 
     /// Searches for the Session at given index and returns it.
     /// If `take`  is set, the session will be extracted from the database
-    pub async fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
+    pub fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
         let db = &mut self.db;
         if let Some(index) = db
             .iter()
@@ -49,7 +49,7 @@ impl Sessions {
     }
 
     /// Add the given session into the database
-    pub async fn add(&mut self, session: Arc<RwLock<Session>>) {
+    pub fn add(&mut self, session: Arc<RwLock<Session>>) {
         self.db.push(session);
     }
 }

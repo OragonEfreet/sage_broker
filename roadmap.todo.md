@@ -1,7 +1,6 @@
 - [ ] Backlog
   - [ ] backend_refactor
     - [ ] Sessions access refactor
-      - [ ] Create a take_over fn that combine take and add
       - [X] Remove TestSession and use Sessions instead
         - [X] temporary put Sessions::* in public and fix tests
         - [X] Remove genericity from backend
