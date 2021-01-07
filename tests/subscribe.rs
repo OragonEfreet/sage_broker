@@ -222,7 +222,64 @@ async fn mqtt_3_8_4_4() {}
 /// MUST handle that packet as if it had received a sequence of multiple SUBSCRIBE packets, except
 /// that it combines their responses into a single SUBACK response.
 #[async_std::test]
-async fn mqtt_3_8_4_5() {}
+async fn mqtt_3_8_4_5() {
+    // Send a sub with three topics
+    let topics = vec!["topic1", "topic2", "topic3"];
+
+    let (_, backend, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
+    let sessions = backend.sessions().await;
+    let session = sessions.get(&client_id.unwrap()).unwrap();
+
+    let subscribe = Subscribe {
+        subscriptions: topics
+            .iter()
+            .map(|&t| (t.into(), Default::default()))
+            .collect(),
+        ..Default::default()
+    };
+
+    assert!(matches!(
+        client::send_waitback(&mut stream, subscribe.into()).await,
+        Response::Packet(Packet::SubAck(_))
+    ));
+
+    // Check for the existence of the three subscriptions in the session
+    {
+        let session = session.read().await;
+        let subs = session.subs();
+        assert_eq!(subs.len(), 3);
+        assert!(subs.contains("topic1".into()));
+        assert!(subs.contains("topic2".into()));
+        assert!(subs.contains("topic3".into()));
+    }
+
+    // Now resend each separately and make the same checks
+    for subscribe in topics.iter().map(|&x| Subscribe {
+        subscriptions: vec![(x.into(), Default::default())],
+        ..Default::default()
+    }) {
+        assert!(matches!(
+            client::send_waitback(&mut stream, subscribe.into()).await,
+            Response::Packet(Packet::SubAck(_))
+        ));
+    }
+
+    {
+        let session = session.read().await;
+        let subs = session.subs();
+        assert_eq!(subs.len(), 3);
+        assert!(subs.contains("topic1".into()));
+        assert!(subs.contains("topic2".into()));
+        assert!(subs.contains("topic3".into()));
+    }
+
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-6: The SUBACK packet sent by the Server to the Client MUST contain a Reason Code for
