@@ -1,0 +1,39 @@
+- [ ] Refactor 002: MVC Inspired Subscription structure 
+  - [ ] Model: SubscriptionsModel trait
+  - [ ] View: SubcriptionsView
+- [ ] Maybe use internal mutability and shared for peer
+- [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
+- [ ] Commands used to interface with the Command loop 
+- [ ] Check for documentation of server.rs and mod.rs
+- [ ] In tests utils, assert an invalid packet is, indeed, invalid
+- [ ] The Broker struct IS the command loop
+- [X] Create control internal module with
+  - [X] Control Trait
+  - [X] impl for each Packet type
+- [X] A Session must have access to its Peer
+- [X] Give Sessions its own struct
+- [X] Templatize the Sessions struct, with a trait like "SessionsBackEnd"
+- [X] Session identifier, different from client identifier, uniquely identifies a session even when the peer changes
+- [X] Refactor 000
+  - [X] Make Command Loop return both receiver and sessions
+  - [X] Get rid of Broker
+  - [X] Find better than the shutdown flag
+  - [X] Rename Control to Command 
+  - [X] Create sessions from the server.rs
+  - [X] Get rid of explicit waiters
+  - [X] Get rid of the bind function
+  - [X] Get rid of the run function
+- [X] Refactor 001
+  - [X] make command loop only return receiver
+  - [X] Create the BackEnd struct
+    - [X] Contains the Sessions intance as an Arc<RwLock<Sessions>>
+    - [X] public access using sessions() and sessions_mut()
+    - [X] Derives Clone (will be useful for Tests and public concurrent access)
+    - [X] Backend is given in command loop instead of Sessions, as a raw Backend (now Arc or RwLock)
+  - [X] Sessions access refactor
+    - [X] Remove TestSession and use Sessions instead
+      - [X] temporary put Sessions::* in public and fix tests
+      - [X] Remove genericity from backend
+    - [X] Make session explicitely Arc<RwLock<_>>
+    - [X] remove public access to Sessions
+      - [X] Provide encapsulation functions allowing tests to work without direct access

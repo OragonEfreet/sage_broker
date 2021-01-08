@@ -149,15 +149,16 @@ async fn mqtt_3_1_2_6() {
 /// the Server SHOULD close the Network Connection.
 #[async_std::test]
 async fn connect_timeout() {
+    let timeout_delay = 1;
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
-        keep_alive: TIMEOUT_DELAY,
+        keep_alive: timeout_delay,
         ..Default::default()
     })
     .await;
     let mut stream = client::spawn(&local_addr).await;
 
     let now = Instant::now();
-    let delay_with_tolerance = (TIMEOUT_DELAY as f32 * 1.5) as u64;
+    let delay_with_tolerance = (timeout_delay as f32 * 1.5) as u64;
 
     if let Ok(packet) = Packet::decode(&mut stream).await {
         match packet {
