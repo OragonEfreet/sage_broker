@@ -9,8 +9,6 @@ The test name is the requirement identifier in snake case (_MQTT-X.Y.Z-i_ -> `mq
 
 - [ ] ! SUBSCRIBE Actions
   - [ ] MQTT-3.8.4-4: If the Retain Handling option is 0, any existing retained messages matching the Topic Filter MUST be re-sent, but Application Messages MUST NOT be lost due to replacing the Subscription.
-  - [ ] MQTT-3.8.4-5: If a Server receives a SUBSCRIBE packet that contains multiple Topic Filters it MUST handle that packet as if it had received a sequence of multiple SUBSCRIBE packets, except that it combines their responses into a single SUBACK response.
-  - [ ] MQTT-3.8.4-6: The SUBACK packet sent by the Server to the Client MUST contain a Reason Code for each Topic Filter/Subscription Option pair.
   - [ ] MQTT-3.8.4-7: This Reason Code MUST either show the maximum QoS that was granted for that Subscription or indicate that the subscription failed.
   - [ ] MQTT-3.8.4-8: The QoS of Payload Messages sent in response to a Subscription MUST be the minimum of the QoS of the originally published message and the Maximum QoS granted by the Server.
   - [ ] MQTT-3.8.1-1: Bits 3,2,1 and 0 of the Fixed Header of the SUBSCRIBE packet are reserved and MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed and close the Network Connection
@@ -22,6 +20,8 @@ The test name is the requirement identifier in snake case (_MQTT-X.Y.Z-i_ -> `mq
   - [X] MQTT-3.8.3-5: The Server MUST treat a SUBSCRIBE packet as malformed if any of Reserved bits in the Payload are non-zero.
   - [X] MQTT-3.8.4-1: When the Server receives a SUBSCRIBE packet from a Client, the Server MUST respond with a SUBACK packet.
   - [X] MQTT-3.8.4-3: If a Server receives a SUBSCRIBE packet containing a Topic Filter that is identical to a Non‑shared Subscription’s Topic Filter for the current Session then it MUST replace that existing Subscription with a new Subscription.
+  - [X] MQTT-3.8.4-6: The SUBACK packet sent by the Server to the Client MUST contain a Reason Code for each Topic Filter/Subscription Option pair.
+  - [X] MQTT-3.8.4-5: If a Server receives a SUBSCRIBE packet that contains multiple Topic Filters it MUST handle that packet as if it had received a sequence of multiple SUBSCRIBE packets, except that it combines their responses into a single SUBACK response.
 - [ ] ! UNSUBSCRIBE Actions
   - [ ] MQTT-3.9.2-1: The Server MUST NOT send this Property if it would increase the size of the SUBACK packet beyond the Maximum Packet Size specified by the Client.
   - [ ] MQTT-3.9.2-2: The Server MUST NOT send this property if it would increase the size of the SUBACK packet beyond the Maximum Packet Size specified by the Client.
