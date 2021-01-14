@@ -1,6 +1,6 @@
 [package]
 name = "sage_broker"
-version = "0.1.0"
+version = "0.1.1"
 description = "MQTT 5.0 broker"
 authors = ["Kevin D'ORANGE <kevin.dorange@gmail.com>"]
 edition = "2018"
