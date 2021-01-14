@@ -285,7 +285,33 @@ async fn mqtt_3_8_4_5() {
 /// MQTT-3.8.4-6: The SUBACK packet sent by the Server to the Client MUST contain a Reason Code for
 /// each Topic Filter/Subscription Option pair.
 #[async_std::test]
-async fn mqtt_3_8_4_6() {}
+async fn mqtt_3_8_4_6() {
+    // Send a sub with three topics
+    let topics = vec!["topic1", "topic2", "topic3"];
+
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..Default::default()
+    })
+    .await;
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
+
+    let subscribe = Subscribe {
+        subscriptions: topics
+            .iter()
+            .map(|&t| (t.into(), Default::default()))
+            .collect(),
+        ..Default::default()
+    };
+
+    let response = client::send_waitback(&mut stream, subscribe.into()).await;
+
+    if let Response::Packet(Packet::SubAck(suback)) = response {
+        assert_eq!(suback.reason_codes.len(), 3);
+    }
+
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-7: This Reason Code MUST either show the maximum QoS that was granted for that
