@@ -3,7 +3,6 @@
   - [ ] View: SubcriptionsView
 - [ ] Maybe use internal mutability and shared for peer
 - [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
-- [ ] Commands used to interface with the Command loop 
 - [ ] Check for documentation of server.rs and mod.rs
 - [ ] In tests utils, assert an invalid packet is, indeed, invalid
 - [ ] The Broker struct IS the command loop

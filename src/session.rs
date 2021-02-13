@@ -63,5 +63,3 @@ impl Session {
         self.subs.insert(topic.into())
     }
 }
-
-//Some(format!("sage_mqtt-{}", nanoid!()))
