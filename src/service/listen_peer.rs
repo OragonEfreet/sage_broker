@@ -66,7 +66,7 @@ pub async fn listen_peer(
             match decoded {
                 // If the result is a packet, we create a packet command
                 Ok(packet) => {
-                    if let Err(e) = to_command_channel.send((peer.clone(), packet).into()).await {
+                    if let Err(e) = to_command_channel.send((peer.clone(), packet)).await {
                         error!("Cannot send command: {:?}", e);
                     }
                 }

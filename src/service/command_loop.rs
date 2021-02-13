@@ -1,4 +1,4 @@
-use crate::{Action, BackEnd, BrokerSettings, Command, CommandReceiver, Control, Peer, Trigger};
+use crate::{Action, BackEnd, BrokerSettings, CommandReceiver, Control, Peer, Trigger};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -25,7 +25,7 @@ pub async fn command_loop(
     while let Some(command) = from_command_channel.next().await {
         // Currently can only be Command::Control
 
-        let Command::Control(peer, packet) = command;
+        let (peer, packet) = command;
         control_packet(&settings, &backend, packet, peer, &shutdown).await;
     }
     info!("Stop command loop");
