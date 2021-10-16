@@ -5,7 +5,6 @@
 
 use async_std::sync::{Arc, RwLock};
 
-mod backend;
 mod broker_settings;
 //mod command;
 mod control;
@@ -17,7 +16,6 @@ mod trigger;
 /// All functions related to service control.
 pub mod service;
 
-pub use backend::BackEnd;
 pub use broker_settings::BrokerSettings;
 //use command::Command;
 use futures::channel::mpsc;

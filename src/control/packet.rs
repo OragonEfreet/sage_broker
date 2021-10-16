@@ -1,4 +1,4 @@
-use crate::{Action, BackEnd, BrokerSettings, Control, Peer};
+use crate::{Action, BrokerSettings, Control, Peer, Sessions};
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use log::error;
@@ -8,7 +8,7 @@ use sage_mqtt::{ConnAck, Packet, PingReq, ReasonCode};
 impl Control for Packet {
     async fn control(
         self,
-        backend: &BackEnd,
+        backend: &Arc<RwLock<Sessions>>,
         settings: &Arc<BrokerSettings>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {

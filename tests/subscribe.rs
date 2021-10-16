@@ -177,13 +177,13 @@ async fn mqtt_3_8_4_2() {
 #[async_std::test]
 async fn mqtt_3_8_4_3() {
     let topic = "Topic1";
-    let (_, backend, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
-    let sessions = backend.sessions().await;
+    let sessions = sessions.read().await;
     let session = sessions.get(&client_id.unwrap()).unwrap();
 
     // Send twice the same topic sub. Each time check only 1 sub exist within
@@ -226,13 +226,13 @@ async fn mqtt_3_8_4_5() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
 
-    let (_, backend, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..Default::default()
     })
     .await;
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
-    let sessions = backend.sessions().await;
+    let sessions = sessions.read().await;
     let session = sessions.get(&client_id.unwrap()).unwrap();
 
     let subscribe = Subscribe {

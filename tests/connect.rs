@@ -18,7 +18,7 @@ pub use utils::*;
 /// discard any existing Session and start a new Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
-    let (_, backend, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
 
     let client_id = String::from("Jaden");
 
@@ -27,7 +27,7 @@ async fn mqtt_3_1_2_4() {
 
     // Some checks on the state of the current database
     let session_id = {
-        let sessions = backend.sessions().await;
+        let sessions = sessions.read().await;
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&client_id).unwrap();
         let session = session.read().await;
@@ -47,7 +47,7 @@ async fn mqtt_3_1_2_4() {
         panic!("{}", what);
     }
 
-    let sessions = backend.sessions().await;
+    let sessions = sessions.read().await;
     assert_eq!(sessions.len(), 1); // We have 1 client exactly
     let session = sessions.get(&client_id).unwrap();
     let session = session.read().await;
@@ -65,7 +65,7 @@ async fn mqtt_3_1_2_4() {
 /// state from the existing Session.
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
-    let (_, backend, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
 
     let client_id = String::from("Jaden");
 
@@ -74,7 +74,7 @@ async fn mqtt_3_1_2_5() {
 
     let session_id = {
         // Search db for the current connexion
-        let sessions = backend.sessions().await;
+        let sessions = sessions.read().await;
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&client_id).unwrap();
         let session = session.read().await;
@@ -91,7 +91,7 @@ async fn mqtt_3_1_2_5() {
         panic!("{}", what);
     }
 
-    let sessions = backend.sessions().await;
+    let sessions = sessions.read().await;
     assert_eq!(sessions.len(), 1); // Because previous session was taken over
     let session = sessions.get(&client_id).unwrap();
     let session = session.read().await;
@@ -109,7 +109,7 @@ async fn mqtt_3_1_2_5() {
 /// (implicitely: other sessions exist)
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
-    let (_, backend, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
 
     let first_client_id = String::from("Jaden");
     let second_client_id = String::from("Jarod");
@@ -119,7 +119,7 @@ async fn mqtt_3_1_2_6() {
 
     let session_id = {
         // Search db for the current connexion
-        let sessions = backend.sessions().await;
+        let sessions = sessions.read().await;
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&first_client_id).unwrap();
         let session = session.read().await;
@@ -130,7 +130,7 @@ async fn mqtt_3_1_2_6() {
     // Let's do the same, forcing clean start to 0
     mqtt_3_1_4_4_connect(&second_client_id, &local_addr, Some(false)).await;
 
-    let sessions = backend.sessions().await;
+    let sessions = sessions.read().await;
     assert_eq!(sessions.len(), 2); // We have 1 client exactly
     let session = sessions.get(&second_client_id).unwrap();
     let session = session.read().await;

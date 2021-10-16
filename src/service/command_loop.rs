@@ -1,4 +1,4 @@
-use crate::{Action, BackEnd, BrokerSettings, CommandReceiver, Control, Peer, Trigger};
+use crate::{Action, BrokerSettings, CommandReceiver, Control, Peer, Sessions, Trigger};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -16,14 +16,14 @@ use sage_mqtt::{Disconnect, Packet, ReasonCode};
 /// The command loop ends.
 /// Eventually, this task may become a spawner for other tasks
 pub async fn command_loop(
-    backend: BackEnd,
+    sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
 ) -> CommandReceiver {
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.next().await {
-        control_packet(&settings, &backend, packet, peer, &shutdown).await;
+        control_packet(&settings, &sessions, packet, peer, &shutdown).await;
     }
     info!("Stop command loop");
     from_command_channel
@@ -31,7 +31,7 @@ pub async fn command_loop(
 
 async fn control_packet(
     settings: &Arc<BrokerSettings>,
-    backend: &BackEnd,
+    sessions: &Arc<RwLock<Sessions>>,
     packet: Packet,
     source: Arc<RwLock<Peer>>,
     shutdown: &Trigger,
@@ -57,7 +57,7 @@ async fn control_packet(
             .into(),
         )
     } else {
-        packet.control(backend, &settings, &source).await
+        packet.control(sessions, &settings, &source).await
     };
     match action {
         Action::Respond(packet) => source.write().await.send(packet).await,
