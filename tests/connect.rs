@@ -44,7 +44,7 @@ async fn mqtt_3_1_2_4() {
     // must be SessionTakenOver
     let policy = DisPacket::Ignore(Some(ReasonCode::SessionTakenOver));
     if let Some(what) = client::wait_close(stream, policy).await {
-        panic!(what);
+        panic!("{}", what);
     }
 
     let sessions = backend.sessions().await;
@@ -88,7 +88,7 @@ async fn mqtt_3_1_2_5() {
     // The first client must have been disconnected by the server
     let policy = DisPacket::Ignore(Some(ReasonCode::SessionTakenOver));
     if let Some(what) = client::wait_close(stream, policy).await {
-        panic!(what);
+        panic!("{}", what);
     }
 
     let sessions = backend.sessions().await;
@@ -305,7 +305,7 @@ async fn mqtt_3_1_4_3() {
     // wait for receiving the Disconnect packet
     // If None, the operation was successful.
     if let Some(message) = wait_dis.await {
-        panic!(message);
+        panic!("{}", message);
     }
 
     server::stop(shutdown, server).await;
