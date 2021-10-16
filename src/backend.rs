@@ -17,5 +17,3 @@ impl BackEnd {
         self.sessions.write().await
     }
 }
-
-pub struct SubscriptionView;
