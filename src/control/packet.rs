@@ -8,14 +8,14 @@ use sage_mqtt::{ConnAck, Packet, PingReq, ReasonCode};
 impl Control for Packet {
     async fn control(
         self,
-        backend: &Arc<RwLock<Sessions>>,
+        sessions: Arc<RwLock<Sessions>>,
         settings: &Arc<BrokerSettings>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {
         match self {
-            Packet::Subscribe(packet) => packet.control(backend, settings, peer).await,
-            Packet::PingReq => PingReq.control(backend, settings, peer).await,
-            Packet::Connect(packet) => packet.control(backend, settings, peer).await,
+            Packet::Subscribe(packet) => packet.control(sessions, settings, peer).await,
+            Packet::PingReq => PingReq.control(sessions, settings, peer).await,
+            Packet::Connect(packet) => packet.control(sessions, settings, peer).await,
             _ => {
                 error!("Unsupported packet: {:?}", self);
                 Action::RespondAndDisconnect(

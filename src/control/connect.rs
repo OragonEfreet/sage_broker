@@ -7,7 +7,7 @@ use sage_mqtt::{Connect, Disconnect, ReasonCode};
 impl Control for Connect {
     async fn control(
         self,
-        backend: &Arc<RwLock<Sessions>>,
+        sessions: Arc<RwLock<Sessions>>,
         settings: &Arc<BrokerSettings>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {
@@ -22,7 +22,7 @@ impl Control for Connect {
                 .or(self.client_id)
                 .unwrap();
 
-            let mut sessions = backend.write().await;
+            let mut sessions = sessions.write().await;
 
             let clean_start = self.clean_start;
             // Session creation/overtaking

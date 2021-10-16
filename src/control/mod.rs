@@ -19,7 +19,7 @@ pub enum Action {
 pub trait Control {
     async fn control(
         self,
-        sessions: &Arc<RwLock<Sessions>>,
+        sessions: Arc<RwLock<Sessions>>,
         settings: &Arc<BrokerSettings>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action;

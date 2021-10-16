@@ -9,7 +9,7 @@ use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 impl Control for Subscribe {
     async fn control(
         self,
-        _: &Arc<RwLock<Sessions>>,
+        _: Arc<RwLock<Sessions>>,
         _: &Arc<BrokerSettings>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {

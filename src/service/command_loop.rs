@@ -23,7 +23,7 @@ pub async fn command_loop(
 ) -> CommandReceiver {
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.next().await {
-        control_packet(&settings, &sessions, packet, peer, &shutdown).await;
+        control_packet(&settings, sessions.clone(), packet, peer, &shutdown).await;
     }
     info!("Stop command loop");
     from_command_channel
@@ -31,7 +31,7 @@ pub async fn command_loop(
 
 async fn control_packet(
     settings: &Arc<BrokerSettings>,
-    sessions: &Arc<RwLock<Sessions>>,
+    sessions: Arc<RwLock<Sessions>>,
     packet: Packet,
     source: Arc<RwLock<Peer>>,
     shutdown: &Trigger,

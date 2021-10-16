@@ -8,7 +8,7 @@ use sage_mqtt::{PingReq, PingResp};
 impl Control for PingReq {
     async fn control(
         self,
-        _: &Arc<RwLock<Sessions>>,
+        _: Arc<RwLock<Sessions>>,
         _: &Arc<BrokerSettings>,
         _: &Arc<RwLock<Peer>>,
     ) -> Action {
