@@ -9,7 +9,7 @@ impl Control for Packet {
     async fn control(
         self,
         sessions: Arc<RwLock<Sessions>>,
-        settings: &Arc<BrokerSettings>,
+        settings: Arc<BrokerSettings>,
         peer: &Arc<RwLock<Peer>>,
     ) -> Action {
         match self {

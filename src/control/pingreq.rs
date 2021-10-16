@@ -9,7 +9,7 @@ impl Control for PingReq {
     async fn control(
         self,
         _: Arc<RwLock<Sessions>>,
-        _: &Arc<BrokerSettings>,
+        _: Arc<BrokerSettings>,
         _: &Arc<RwLock<Peer>>,
     ) -> Action {
         Action::Respond(PingResp.into())
