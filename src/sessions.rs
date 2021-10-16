@@ -24,28 +24,18 @@ impl Sessions {
     /// Searches for the Session at given index and returns it.
     /// If `take`  is set, the session will be extracted from the database
     pub fn take(&mut self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
-        let db = &mut self.db;
-        if let Some(index) = db
+        self.db
             .iter()
             .position(|c| task::block_on(c.read()).client_id() == client_id)
-        {
-            Some(db.swap_remove(index)) // We take it
-        } else {
-            None
-        }
+            .map(|index| self.db.swap_remove(index))
     }
 
     /// Returns the client given its id. If not client exist, returns None
     pub fn get(&self, client_id: &str) -> Option<Arc<RwLock<Session>>> {
-        let db = &self.db;
-        if let Some(index) = db
+        self.db
             .iter()
             .position(|c| task::block_on(c.read()).client_id() == client_id)
-        {
-            Some(db[index].clone()) // We closne it
-        } else {
-            None
-        }
+            .map(|index| self.db[index].clone())
     }
 
     /// Add the given session into the database
