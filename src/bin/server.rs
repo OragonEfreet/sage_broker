@@ -1,5 +1,6 @@
 use async_std::net::{TcpListener, ToSocketAddrs};
 use async_std::{sync::Arc, task};
+use ctrlc;
 use futures::channel::mpsc;
 use log::{error, info};
 use sage_broker::{service, BrokerSettings, Trigger};
@@ -18,19 +19,18 @@ async fn main() {
         // Create the command packet channel and spawn a new
         // task for command packet treatment.
         let (command_sender, command_receiver) = mpsc::unbounded();
+
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
-            Default::default(),
-            settings.clone(),
-            command_receiver,
-            shutdown.clone(),
+            Default::default(), // The list of sessions
+            settings.clone(),   // The settings
+            command_receiver,   // The command receiver to use
+            shutdown.clone(),   // Shutdown trigger
         ));
 
         // Launch the listen server.
         // This is the main task, responsible for listening the Tcp connexions
         // And creating new peers from it.
-        // In this example, we await it directly, but you may launch it
-        // and join it later.
         info!("Creating the listen loop...");
         let server = task::spawn(service::listen_tcp(
             listener,
@@ -39,10 +39,15 @@ async fn main() {
             shutdown.clone(),
         ));
 
-        //        use std::time::Duration;
-        //        task::sleep(Duration::from_secs(10)).await;
-        //        println!("Shutting down");
-        //        shutdown.fire().await;
+        // Use the ctrlc crate to handle manual termination
+        ctrlc::set_handler(move || {
+            if task::block_on(shutdown.is_fired()) {
+                std::process::exit(0);
+            } else {
+                task::block_on(shutdown.fire())
+            }
+        })
+        .expect("Error setting Ctrl-C handler");
 
         server.await;
         info!("Listen loop ended");

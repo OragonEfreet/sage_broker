@@ -15,6 +15,7 @@ categories = ["command-line-utilities", "network-programming", "web-programming"
 [dependencies]
 async-std = {version="1.9.0",features = ["attributes"]}
 async-trait = "0.1.50"
+ctrlc = "3.2.1"
 futures = "0.3.14"
 log = "0.4.14"
 nanoid = "0.4.0"
