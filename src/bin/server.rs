@@ -1,6 +1,5 @@
 use async_std::net::{TcpListener, ToSocketAddrs};
 use async_std::{sync::Arc, task};
-use ctrlc;
 use futures::channel::mpsc;
 use log::{error, info};
 use sage_broker::{service, BrokerSettings, Trigger};

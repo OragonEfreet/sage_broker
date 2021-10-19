@@ -13,6 +13,8 @@ use std::time::Duration;
 /// listen Tcp loop.
 /// `listener` can be any instance of `async_std::net::TcpListener` but you can
 /// use `bind` to obtain one.
+/// Task ends when the shutdown object is triggered.
+/// It owns all peer listen/send in order to wait for them once the server is stopping.
 pub async fn listen_tcp(
     listener: TcpListener,
     to_command_channel: CommandSender,

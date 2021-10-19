@@ -12,6 +12,12 @@ use std::time::{Duration, Instant};
 
 /// The listen peer task is responsible for listening any incoming packet from a specific peer
 /// and convert it to a MQTT packet. Once converted, it sends it into the commands channel.
+/// All listen_peer tasks hold an instance of the same command_sender.
+/// This loop may end for several reasons:
+/// - Error while decoding a packet from a client
+/// - The server is marked as shutting down
+/// - The peer is marked as closing
+/// At that moment, it'll release its instance of CommandSender.
 pub async fn listen_peer(
     peer: Peer,
     mut to_command_channel: CommandSender,
@@ -21,21 +27,15 @@ pub async fn listen_peer(
 ) {
     let peer = Arc::new(RwLock::new(peer));
     info!("Start listening from '{}'", peer.read().await.addr(),);
-    // If the keep alive is 0, timeout_delay is set to 3 but the timeout error
-    // won't disconnect the peer.
-    // If the keep alive is > 0 timeout_delay is 1.5 times it, and a timeout will
-    // disconnect
-    let mut keep_alive = {
-        let keep_alive = settings.keep_alive;
-
-        if keep_alive == 0 {
-            info!("Time out is disabled");
-            None
-        } else {
-            let max = Duration::from_secs(((keep_alive as f32) * 1.5) as u64);
-            info!("Time out is {:?} (1.5*{:?})", max, keep_alive);
-            Some((max, Instant::now()))
-        }
+    // The keep_alive value is initially given by `settings`.
+    // If 0: no keep_alive (no timeout, listener waits forever)
+    // If >0: effective keep_alive is 1.5* the one in the settings.
+    let mut keep_alive = match settings.keep_alive {
+        0 => None,
+        val => Some((
+            Duration::from_secs(((val as f32) * 1.5) as u64),
+            Instant::now(),
+        )),
     };
     let timeout_delay = Duration::from_secs(1_u64);
 
