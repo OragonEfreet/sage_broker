@@ -2,7 +2,7 @@ use crate::{service, BrokerSettings, CommandSender, Peer, Trigger};
 use async_std::{
     future,
     net::{TcpListener, TcpStream},
-    sync::{Arc, RwLock},
+    sync::Arc,
     task::{self, JoinHandle},
 };
 use futures::{channel::mpsc, future::join_all};
@@ -89,14 +89,11 @@ async fn create_peer(
             // task temporary keeping the Peer alive (Command Packets)
             let sender_task = task::spawn(service::send_peer(packet_receiver, stream.clone()));
 
-            let peer = Peer::new(peer_addr, packet_sender);
-            let peer = Arc::new(RwLock::new(peer));
-
             // No need to handle this one, a safe close
             // Will always terminate it before the command_loop
             // See "service::run" for example
             let listen_task = task::spawn(service::listen_peer(
-                peer,
+                Peer::new(peer_addr, packet_sender),
                 command_sender,
                 settings.clone(),
                 stream,

@@ -10,13 +10,16 @@ use log::{debug, error, info};
 use sage_mqtt::{Disconnect, Packet, ReasonCode};
 use std::time::{Duration, Instant};
 
+/// The listen peer task is responsible for listening any incoming packet from a specific peer
+/// and convert it to a MQTT packet. Once converted, it sends it into the commands channel.
 pub async fn listen_peer(
-    peer: Arc<RwLock<Peer>>,
+    peer: Peer,
     mut to_command_channel: CommandSender,
     settings: Arc<BrokerSettings>,
     stream: Arc<TcpStream>,
     shutdown: Trigger,
 ) {
+    let peer = Arc::new(RwLock::new(peer));
     info!("Start listening from '{}'", peer.read().await.addr(),);
     // If the keep alive is 0, timeout_delay is set to 3 but the timeout error
     // won't disconnect the peer.
