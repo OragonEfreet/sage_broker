@@ -1,13 +1,10 @@
-use crate::{
-    control::{self, Action},
-    BrokerSettings, CommandReceiver, Peer, Sessions, Trigger,
-};
+use crate::{control, BrokerSettings, CommandReceiver, Sessions, Trigger};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
 };
 use log::{debug, info};
-use sage_mqtt::{Disconnect, Packet, ReasonCode};
+use sage_mqtt::{Disconnect, ReasonCode};
 
 /// The command loop is reponsible from receiving and treating any command
 /// packet. It thus represents the actual instance of a running broker.
@@ -49,21 +46,9 @@ pub async fn command_loop(
                 )
                 .await;
         } else {
-            process_command(settings.clone(), sessions.clone(), packet, peer).await;
+            control::packet(packet, sessions.clone(), settings.clone(), &peer).await;
         };
     }
     info!("Stop command loop");
     from_command_channel
-}
-
-async fn process_command(
-    settings: Arc<BrokerSettings>,
-    sessions: Arc<RwLock<Sessions>>,
-    packet: Packet,
-    source: Arc<RwLock<Peer>>,
-) {
-    match control::packet(packet, sessions, settings, &source).await {
-        Action::Respond(packet) => source.write().await.send(packet).await,
-        Action::RespondAndDisconnect(packet) => source.write().await.send_close(packet).await,
-    };
 }

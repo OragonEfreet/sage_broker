@@ -3,30 +3,28 @@ use async_std::sync::{Arc, RwLock};
 use log::error;
 use sage_mqtt::{ConnAck, Connect, Disconnect, Packet, PingResp, ReasonCode, SubAck, Subscribe};
 
-pub enum Action {
-    Respond(Packet),
-    RespondAndDisconnect(Packet),
-}
-
 pub async fn packet(
     packet: Packet,
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
     peer: &Arc<RwLock<Peer>>,
-) -> Action {
+) {
     match packet {
         Packet::Subscribe(packet) => control_subscribe(packet, peer).await,
-        Packet::PingReq => Action::Respond(PingResp.into()),
+        Packet::PingReq => peer.write().await.send(PingResp.into()).await,
         Packet::Connect(packet) => control_connect(packet, sessions, settings, peer).await,
         _ => {
             error!("Unsupported packet: {:?}", packet);
-            Action::RespondAndDisconnect(
-                ConnAck {
-                    reason_code: ReasonCode::ImplementationSpecificError,
-                    ..Default::default()
-                }
-                .into(),
-            )
+            peer.write()
+                .await
+                .send_close(
+                    ConnAck {
+                        reason_code: ReasonCode::ImplementationSpecificError,
+                        ..Default::default()
+                    }
+                    .into(),
+                )
+                .await;
         }
     }
 }
@@ -36,7 +34,7 @@ async fn control_connect(
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
     peer: &Arc<RwLock<Peer>>,
-) -> Action {
+) {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
     let mut connack = settings.acknowledge_connect(&connect);
@@ -87,15 +85,15 @@ async fn control_connect(
         sessions.add(session.clone());
         peer.write().await.bind(session);
 
-        Action::Respond(connack.into())
+        peer.write().await.send(connack.into()).await;
     } else {
-        Action::RespondAndDisconnect(connack.into())
+        peer.write().await.send_close(connack.into()).await;
     }
 }
 
 /// Simply returns a ConnAck package
 /// With the correct packet identifier
-async fn control_subscribe(packet: Subscribe, peer: &Arc<RwLock<Peer>>) -> Action {
+async fn control_subscribe(packet: Subscribe, peer: &Arc<RwLock<Peer>>) {
     let mut suback = SubAck {
         packet_identifier: packet.packet_identifier,
         ..Default::default()
@@ -110,5 +108,5 @@ async fn control_subscribe(packet: Subscribe, peer: &Arc<RwLock<Peer>>) -> Actio
         }
     }
 
-    Action::Respond(suback.into())
+    peer.write().await.send(suback.into()).await
 }
