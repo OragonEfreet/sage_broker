@@ -1,11 +1,11 @@
 use crate::{service, BrokerSettings, CommandSender, Peer, Trigger};
 use async_std::{
-    future,
+    channel, future,
     net::{TcpListener, TcpStream},
     sync::Arc,
     task::{self, JoinHandle},
 };
-use futures::{channel::mpsc, future::join_all};
+use futures::future::join_all;
 use log::{error, info};
 use std::time::Duration;
 
@@ -82,7 +82,7 @@ async fn create_peer(
             // Launch the listen peer loop
             let stream = Arc::new(stream);
 
-            let (packet_sender, packet_receiver) = mpsc::unbounded();
+            let (packet_sender, packet_receiver) = channel::unbounded();
 
             // The send_peer task will end as long as no packet_sender is
             // open anymore.

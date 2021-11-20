@@ -5,7 +5,6 @@ use async_std::{
     net::TcpStream,
     sync::{Arc, RwLock},
 };
-use futures::SinkExt;
 use log::{debug, error, info};
 use sage_mqtt::{Disconnect, Packet, ReasonCode};
 use std::time::{Duration, Instant};
@@ -20,7 +19,7 @@ use std::time::{Duration, Instant};
 /// At that moment, it'll release its instance of CommandSender.
 pub async fn listen_peer(
     peer: Peer,
-    mut to_command_channel: CommandSender,
+    to_command_channel: CommandSender,
     settings: Arc<BrokerSettings>,
     stream: Arc<TcpStream>,
     shutdown: Trigger,

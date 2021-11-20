@@ -3,7 +3,6 @@ use async_std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
 };
-use futures::SinkExt;
 use log::error;
 use sage_mqtt::Packet;
 

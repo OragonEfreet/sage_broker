@@ -1,6 +1,5 @@
 use async_std::net::{TcpListener, ToSocketAddrs};
-use async_std::{sync::Arc, task};
-use futures::channel::mpsc;
+use async_std::{channel, sync::Arc, task};
 use log::{error, info};
 use sage_broker::{service, BrokerSettings, Trigger};
 
@@ -17,7 +16,7 @@ async fn main() {
 
         // Create the command packet channel and spawn a new
         // task for command packet treatment.
-        let (command_sender, command_receiver) = mpsc::unbounded();
+        let (command_sender, command_receiver) = channel::unbounded();
 
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(

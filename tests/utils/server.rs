@@ -1,9 +1,9 @@
 use async_std::{
+    channel,
     net::{SocketAddr, TcpListener},
     sync::{Arc, RwLock},
     task::{self, JoinHandle},
 };
-use futures::channel::mpsc;
 use sage_broker::{service, BrokerSettings, CommandReceiver, Sessions, Trigger};
 
 pub async fn spawn(
@@ -43,7 +43,7 @@ async fn run_server(
     settings: Arc<BrokerSettings>,
     shutdown: Trigger,
 ) -> CommandReceiver {
-    let (command_sender, command_receiver) = mpsc::unbounded();
+    let (command_sender, command_receiver) = channel::unbounded();
     let command_loop = task::spawn(service::command_loop(
         sessions.clone(),
         settings.clone(),
