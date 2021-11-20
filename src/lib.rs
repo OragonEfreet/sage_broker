@@ -28,7 +28,6 @@ pub use trigger::Trigger;
 pub type CommandSender = mpsc::UnboundedSender<(Arc<RwLock<Peer>>, Packet)>;
 /// The MPSC sender for controlling a running server
 pub type CommandReceiver = mpsc::UnboundedReceiver<(Arc<RwLock<Peer>>, Packet)>;
-use control::{Action, Control};
 
 type PacketReceiver = mpsc::UnboundedReceiver<Packet>;
 type PacketSender = mpsc::UnboundedSender<Packet>;

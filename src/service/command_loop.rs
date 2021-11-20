@@ -1,4 +1,7 @@
-use crate::{Action, BrokerSettings, CommandReceiver, Control, Peer, Sessions, Trigger};
+use crate::{
+    control::{self, Action},
+    BrokerSettings, CommandReceiver, Peer, Sessions, Trigger,
+};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -23,43 +26,43 @@ pub async fn command_loop(
 ) -> CommandReceiver {
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.next().await {
-        control_packet(settings.clone(), sessions.clone(), packet, peer, &shutdown).await;
+        debug!(
+            "[{:?}] <<< {:?}",
+            if let Some(s) = peer.read().await.session() {
+                s.read().await.client_id().into()
+            } else {
+                String::from("N/A")
+            },
+            packet
+        );
+        // If the broker is stopping, let's notify here the client with a
+        // DISCONNECT and close the peer
+        if shutdown.is_fired().await {
+            peer.write()
+                .await
+                .send_close(
+                    Disconnect {
+                        reason_code: ReasonCode::ServerShuttingDown,
+                        ..Default::default()
+                    }
+                    .into(),
+                )
+                .await;
+        } else {
+            process_command(settings.clone(), sessions.clone(), packet, peer).await;
+        };
     }
     info!("Stop command loop");
     from_command_channel
 }
 
-async fn control_packet(
+async fn process_command(
     settings: Arc<BrokerSettings>,
     sessions: Arc<RwLock<Sessions>>,
     packet: Packet,
     source: Arc<RwLock<Peer>>,
-    shutdown: &Trigger,
 ) {
-    debug!(
-        "[{:?}] <<< {:?}",
-        if let Some(s) = source.read().await.session() {
-            s.read().await.client_id().into()
-        } else {
-            String::from("N/A")
-        },
-        packet
-    );
-    // If the broker is stopping, let's notify here the client with a
-    // DISCONNECT and close the peer
-    // NOTE Maybe move this test up a bit
-    let action = if shutdown.is_fired().await {
-        Action::RespondAndDisconnect(
-            Disconnect {
-                reason_code: ReasonCode::ServerShuttingDown,
-                ..Default::default()
-            }
-            .into(),
-        )
-    } else {
-        packet.control(sessions, settings, &source).await
-    };
-    match action {
+    match control::packet(packet, sessions, settings, &source).await {
         Action::Respond(packet) => source.write().await.send(packet).await,
         Action::RespondAndDisconnect(packet) => source.write().await.send_close(packet).await,
     };
