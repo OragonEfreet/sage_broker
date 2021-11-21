@@ -1,5 +1,5 @@
 use crate::Peer;
-use async_std::sync::{Arc, RwLock, Weak};
+use async_std::sync::{Arc, Weak};
 use log::info;
 use nanoid::nanoid;
 use std::collections::HashSet;
@@ -11,13 +11,13 @@ use std::collections::HashSet;
 pub struct Session {
     id: String,
     client_id: String,
-    peer: Weak<RwLock<Peer>>,
+    peer: Weak<Peer>,
     subs: HashSet<String>,
 }
 
 impl Session {
     /// Creates a new session, giving a peer and an id
-    pub fn new(client_id: &str, peer: &Arc<RwLock<Peer>>) -> Self {
+    pub fn new(client_id: &str, peer: &Arc<Peer>) -> Self {
         let id = format!("session_{}", nanoid!(10));
         info!("New session: Unique ID:{:?}, Client ID:{:?}", id, client_id);
 
@@ -41,13 +41,13 @@ impl Session {
     }
 
     /// Gets the currently bound peer as as owning pointer
-    pub fn peer(&self) -> Option<Arc<RwLock<Peer>>> {
+    pub fn peer(&self) -> Option<Arc<Peer>> {
         self.peer.upgrade()
     }
 
     /// Changes the peer of the session.
     /// If a peer was already set, it is unlinked
-    pub fn set_peer(&mut self, peer: &Arc<RwLock<Peer>>) {
+    pub fn set_peer(&mut self, peer: &Arc<Peer>) {
         self.peer = Arc::downgrade(peer);
     }
 

@@ -25,7 +25,7 @@ pub async fn command_loop(
     while let Some((peer, packet)) = from_command_channel.next().await {
         debug!(
             "[{:?}] <<< {:?}",
-            if let Some(s) = peer.read().await.session().await {
+            if let Some(s) = peer.session().await {
                 s.read().await.client_id().into()
             } else {
                 String::from("N/A")
@@ -35,16 +35,14 @@ pub async fn command_loop(
         // If the broker is stopping, let's notify here the client with a
         // DISCONNECT and close the peer
         if shutdown.is_fired().await {
-            peer.write()
-                .await
-                .send_close(
-                    Disconnect {
-                        reason_code: ReasonCode::ServerShuttingDown,
-                        ..Default::default()
-                    }
-                    .into(),
-                )
-                .await;
+            peer.send_close(
+                Disconnect {
+                    reason_code: ReasonCode::ServerShuttingDown,
+                    ..Default::default()
+                }
+                .into(),
+            )
+            .await;
         } else {
             control::packet(packet, sessions.clone(), settings.clone(), &peer).await;
         };

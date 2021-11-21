@@ -7,24 +7,22 @@ pub async fn packet(
     packet: Packet,
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
-    peer: &Arc<RwLock<Peer>>,
+    peer: &Arc<Peer>,
 ) {
     match packet {
         Packet::Subscribe(packet) => control_subscribe(packet, peer).await,
-        Packet::PingReq => peer.write().await.send(PingResp.into()).await,
+        Packet::PingReq => peer.send(PingResp.into()).await,
         Packet::Connect(packet) => control_connect(packet, sessions, settings, peer).await,
         _ => {
             error!("Unsupported packet: {:?}", packet);
-            peer.write()
-                .await
-                .send_close(
-                    ConnAck {
-                        reason_code: ReasonCode::ImplementationSpecificError,
-                        ..Default::default()
-                    }
-                    .into(),
-                )
-                .await;
+            peer.send_close(
+                ConnAck {
+                    reason_code: ReasonCode::ImplementationSpecificError,
+                    ..Default::default()
+                }
+                .into(),
+            )
+            .await;
         }
     }
 }
@@ -33,7 +31,7 @@ async fn control_connect(
     connect: Connect,
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
-    peer: &Arc<RwLock<Peer>>,
+    peer: &Arc<Peer>,
 ) {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
@@ -56,16 +54,14 @@ async fn control_connect(
             if let Some(session) = sessions.take(&client_id) {
                 // If the existing session has a peer, it'll be disconnected with takeover
                 if let Some(peer) = session.read().await.peer() {
-                    peer.write()
-                        .await
-                        .send_close(
-                            Disconnect {
-                                reason_code: ReasonCode::SessionTakenOver,
-                                ..Default::default()
-                            }
-                            .into(),
-                        )
-                        .await;
+                    peer.send_close(
+                        Disconnect {
+                            reason_code: ReasonCode::SessionTakenOver,
+                            ..Default::default()
+                        }
+                        .into(),
+                    )
+                    .await;
                 }
 
                 if clean_start {
@@ -84,23 +80,23 @@ async fn control_connect(
             }
         };
         sessions.add(session.clone());
-        peer.write().await.bind(session).await;
-        peer.write().await.send(connack.into()).await;
+        peer.bind(session).await;
+        peer.send(connack.into()).await;
     } else {
-        peer.write().await.send_close(connack.into()).await;
+        peer.send_close(connack.into()).await;
     }
 }
 
 /// Simply returns a ConnAck package
 /// With the correct packet identifier
-async fn control_subscribe(packet: Subscribe, peer: &Arc<RwLock<Peer>>) {
+async fn control_subscribe(packet: Subscribe, peer: &Arc<Peer>) {
     let mut suback = SubAck {
         packet_identifier: packet.packet_identifier,
         ..Default::default()
     };
 
     // Take the client if exist, from the peer, and at it a new sub
-    if let Some(session) = peer.read().await.session().await {
+    if let Some(session) = peer.session().await {
         let mut session = session.write().await;
         for (topic, _) in packet.subscriptions {
             session.subscribe(&topic);
@@ -108,5 +104,5 @@ async fn control_subscribe(packet: Subscribe, peer: &Arc<RwLock<Peer>>) {
         }
     }
 
-    peer.write().await.send(suback.into()).await
+    peer.send(suback.into()).await
 }

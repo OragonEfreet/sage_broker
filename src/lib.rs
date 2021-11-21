@@ -3,10 +3,7 @@
 // #![warn(missing_doc_code_examples)]
 #![allow(clippy::large_enum_variant)]
 
-use async_std::{
-    channel,
-    sync::{Arc, RwLock},
-};
+use async_std::{channel, sync::Arc};
 
 mod broker_settings;
 //mod command;
@@ -27,9 +24,9 @@ pub use session::Session;
 pub use sessions::Sessions;
 pub use trigger::Trigger;
 /// The MPSC sender for controlling a running server
-pub type CommandSender = channel::Sender<(Arc<RwLock<Peer>>, Packet)>;
+pub type CommandSender = channel::Sender<(Arc<Peer>, Packet)>;
 /// The MPSC sender for controlling a running server
-pub type CommandReceiver = channel::Receiver<(Arc<RwLock<Peer>>, Packet)>;
+pub type CommandReceiver = channel::Receiver<(Arc<Peer>, Packet)>;
 
 type PacketReceiver = channel::Receiver<Packet>;
 type PacketSender = channel::Sender<Packet>;

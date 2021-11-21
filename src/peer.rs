@@ -28,7 +28,7 @@ impl Peer {
         &self.addr
     }
 
-    pub async fn bind(&mut self, session: Arc<RwLock<Session>>) {
+    pub async fn bind(&self, session: Arc<RwLock<Session>>) {
         *(self.session.write().await) = Arc::downgrade(&session);
     }
 

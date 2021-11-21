@@ -1,10 +1,5 @@
 use crate::{BrokerSettings, CommandSender, Peer, Trigger};
-use async_std::{
-    future,
-    io::BufReader,
-    net::TcpStream,
-    sync::{Arc, RwLock},
-};
+use async_std::{future, io::BufReader, net::TcpStream, sync::Arc};
 use log::{debug, error, info};
 use sage_mqtt::{Disconnect, Packet, ReasonCode};
 use std::time::{Duration, Instant};
@@ -24,8 +19,8 @@ pub async fn listen_peer(
     stream: Arc<TcpStream>,
     shutdown: Trigger,
 ) {
-    let peer = Arc::new(RwLock::new(peer));
-    info!("Start listening from '{}'", peer.read().await.addr(),);
+    let peer = Arc::new(peer);
+    info!("Start listening from '{}'", peer.addr(),);
     // The keep_alive value is initially given by `settings`.
     // If 0: no keep_alive (no timeout, listener waits forever)
     // If >0: effective keep_alive is 1.5* the one in the settings.
@@ -39,7 +34,7 @@ pub async fn listen_peer(
     let timeout_delay = Duration::from_secs(1_u64);
 
     let mut stream = BufReader::new(&*stream);
-    while !peer.read().await.closing().await {
+    while !peer.closing().await {
         if let Some((max, last)) = keep_alive {
             debug!("KeepAlive: {:?}/{:?}", last.elapsed(), max);
         }
@@ -49,7 +44,7 @@ pub async fn listen_peer(
                 reason_code: ReasonCode::ServerShuttingDown,
                 ..Default::default()
             };
-            peer.write().await.send_close(packet.into()).await;
+            peer.send_close(packet.into()).await;
             break;
         }
 
@@ -61,7 +56,7 @@ pub async fn listen_peer(
 
             // If the connexion has been closed by some other task, we just
             // quit from here.
-            if peer.read().await.closing().await {
+            if peer.closing().await {
                 break;
             }
 
@@ -77,14 +72,14 @@ pub async fn listen_peer(
                 Err(e) => {
                     error!("Decode Error: {:?}", e);
 
-                    if peer.read().await.session().await.is_some() {
+                    if peer.session().await.is_some() {
                         let packet = Disconnect {
                             reason_code: e.into(),
                             ..Default::default()
                         };
-                        peer.write().await.send_close(packet.into()).await;
+                        peer.send_close(packet.into()).await;
                     } else {
-                        peer.write().await.close().await;
+                        peer.close().await;
                     }
                 }
             }
@@ -99,16 +94,16 @@ pub async fn listen_peer(
                 info!("Peer timout, send Disconnect");
                 // If the peer is not in a closing state we can send a Disconnect
                 // packet with KeepAliveTimeout reason code
-                if !peer.read().await.closing().await {
+                if !peer.closing().await {
                     let packet = Disconnect {
                         reason_code: ReasonCode::KeepAliveTimeout,
                         ..Default::default()
                     };
-                    peer.write().await.send_close(packet.into()).await;
+                    peer.send_close(packet.into()).await;
                 }
             }
         }
     }
 
-    info!("Stop listening from '{}'", peer.read().await.addr(),);
+    info!("Stop listening from '{}'", peer.addr(),);
 }
