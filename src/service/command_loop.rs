@@ -25,7 +25,7 @@ pub async fn command_loop(
     while let Some((peer, packet)) = from_command_channel.next().await {
         debug!(
             "[{:?}] <<< {:?}",
-            if let Some(s) = peer.read().await.session() {
+            if let Some(s) = peer.read().await.session().await {
                 s.read().await.client_id().into()
             } else {
                 String::from("N/A")

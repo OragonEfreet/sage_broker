@@ -84,7 +84,7 @@ async fn control_connect(
             }
         };
         sessions.add(session.clone());
-        peer.write().await.bind(session);
+        peer.write().await.bind(session).await;
         peer.write().await.send(connack.into()).await;
     } else {
         peer.write().await.send_close(connack.into()).await;
@@ -100,7 +100,7 @@ async fn control_subscribe(packet: Subscribe, peer: &Arc<RwLock<Peer>>) {
     };
 
     // Take the client if exist, from the peer, and at it a new sub
-    if let Some(session) = peer.read().await.session() {
+    if let Some(session) = peer.read().await.session().await {
         let mut session = session.write().await;
         for (topic, _) in packet.subscriptions {
             session.subscribe(&topic);

@@ -9,7 +9,7 @@ use sage_mqtt::Packet;
 #[derive(Debug)]
 pub struct Peer {
     addr: SocketAddr,
-    session: Weak<RwLock<Session>>,
+    session: RwLock<Weak<RwLock<Session>>>,
     packet_sender: PacketSender,
     closing: Trigger,
 }
@@ -28,28 +28,28 @@ impl Peer {
         &self.addr
     }
 
-    pub fn bind(&mut self, session: Arc<RwLock<Session>>) {
-        self.session = Arc::downgrade(&session);
+    pub async fn bind(&mut self, session: Arc<RwLock<Session>>) {
+        *(self.session.write().await) = Arc::downgrade(&session);
     }
 
-    pub fn session(&self) -> Option<Arc<RwLock<Session>>> {
-        self.session.upgrade()
+    pub async fn session(&self) -> Option<Arc<RwLock<Session>>> {
+        self.session.read().await.upgrade()
     }
 
     pub async fn closing(&self) -> bool {
         self.closing.is_fired().await
     }
 
-    pub async fn close(&mut self) {
+    pub async fn close(&self) {
         self.closing.fire().await;
     }
 
-    pub async fn send_close(&mut self, packet: Packet) {
+    pub async fn send_close(&self, packet: Packet) {
         self.send(packet).await;
         self.close().await;
     }
 
-    pub async fn send(&mut self, packet: Packet) {
+    pub async fn send(&self, packet: Packet) {
         if let Err(e) = self.packet_sender.send(packet).await {
             error!("Cannot send packet to channel: {:?}", e);
         }
