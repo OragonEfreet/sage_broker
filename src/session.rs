@@ -17,14 +17,14 @@ pub struct Session {
 
 impl Session {
     /// Creates a new session, giving a peer and an id
-    pub fn new(client_id: &str, peer: &Arc<Peer>) -> Self {
+    pub fn new(client_id: &str, peer: Arc<Peer>) -> Self {
         let id = format!("session_{}", nanoid!(10));
         info!("New session: Unique ID:{:?}, Client ID:{:?}", id, client_id);
 
         Session {
             id,
             client_id: client_id.into(),
-            peer: Arc::downgrade(peer),
+            peer: Arc::downgrade(&peer),
             subs: Default::default(),
         }
     }
@@ -47,8 +47,8 @@ impl Session {
 
     /// Changes the peer of the session.
     /// If a peer was already set, it is unlinked
-    pub fn set_peer(&mut self, peer: &Arc<Peer>) {
-        self.peer = Arc::downgrade(peer);
+    pub fn set_peer(&mut self, peer: Arc<Peer>) {
+        self.peer = Arc::downgrade(&peer);
     }
 
     /// Returns the list of subscriptions

@@ -7,7 +7,7 @@ pub async fn packet(
     packet: Packet,
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
-    peer: &Arc<Peer>,
+    peer: Arc<Peer>,
 ) {
     match packet {
         Packet::Subscribe(packet) => control_subscribe(packet, peer).await,
@@ -31,7 +31,7 @@ async fn control_connect(
     connect: Connect,
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
-    peer: &Arc<Peer>,
+    peer: Arc<Peer>,
 ) {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
@@ -67,16 +67,16 @@ async fn control_connect(
                 if clean_start {
                     connack.session_present = false;
                     let client_id = client_id.clone();
-                    Arc::new(RwLock::new(Session::new(&client_id, peer)))
+                    Arc::new(RwLock::new(Session::new(&client_id, peer.clone())))
                 } else {
                     connack.session_present = true;
-                    session.write().await.set_peer(peer);
+                    session.write().await.set_peer(peer.clone());
                     session
                 }
             } else {
                 connack.session_present = false;
                 let client_id = client_id.clone();
-                Arc::new(RwLock::new(Session::new(&client_id, peer)))
+                Arc::new(RwLock::new(Session::new(&client_id, peer.clone())))
             }
         };
         sessions.add(session.clone());
@@ -89,7 +89,7 @@ async fn control_connect(
 
 /// Simply returns a ConnAck package
 /// With the correct packet identifier
-async fn control_subscribe(packet: Subscribe, peer: &Arc<Peer>) {
+async fn control_subscribe(packet: Subscribe, peer: Arc<Peer>) {
     let mut suback = SubAck {
         packet_identifier: packet.packet_identifier,
         ..Default::default()

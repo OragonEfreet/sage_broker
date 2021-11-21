@@ -44,7 +44,7 @@ pub async fn command_loop(
             )
             .await;
         } else {
-            control::packet(packet, sessions.clone(), settings.clone(), &peer).await;
+            control::packet(packet, sessions.clone(), settings.clone(), peer).await;
         };
     }
     info!("Stop command loop");
