@@ -6,7 +6,7 @@ use async_std::sync::{Arc, RwLock};
 /// - The default value is false
 /// - Once `fire()` has been called, the value is set to true and can never be
 ///   set back to false again
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Trigger {
     flag: Arc<RwLock<bool>>,
 }

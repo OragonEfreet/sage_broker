@@ -1,4 +1,4 @@
-use crate::{PacketSender, Session};
+use crate::{PacketSender, Session, Trigger};
 use async_std::{
     net::SocketAddr,
     sync::{Arc, RwLock, Weak},
@@ -11,16 +11,16 @@ pub struct Peer {
     addr: SocketAddr,
     session: Weak<RwLock<Session>>,
     packet_sender: PacketSender,
-    closing: bool,
+    closing: Trigger,
 }
 
 impl Peer {
     pub fn new(addr: SocketAddr, packet_sender: PacketSender) -> Self {
         Peer {
             addr,
-            session: Weak::default(),
             packet_sender,
-            closing: false,
+            session: Default::default(),
+            closing: Default::default(),
         }
     }
 
@@ -36,12 +36,12 @@ impl Peer {
         self.session.upgrade()
     }
 
-    pub fn closing(&self) -> bool {
-        self.closing
+    pub async fn closing(&self) -> bool {
+        self.closing.is_fired().await
     }
 
     pub async fn close(&mut self) {
-        self.closing = true;
+        self.closing.fire().await;
     }
 
     pub async fn send_close(&mut self, packet: Packet) {

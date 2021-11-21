@@ -39,7 +39,7 @@ pub async fn listen_peer(
     let timeout_delay = Duration::from_secs(1_u64);
 
     let mut stream = BufReader::new(&*stream);
-    while !peer.read().await.closing() {
+    while !peer.read().await.closing().await {
         if let Some((max, last)) = keep_alive {
             debug!("KeepAlive: {:?}/{:?}", last.elapsed(), max);
         }
@@ -61,7 +61,7 @@ pub async fn listen_peer(
 
             // If the connexion has been closed by some other task, we just
             // quit from here.
-            if peer.read().await.closing() {
+            if peer.read().await.closing().await {
                 break;
             }
 
@@ -99,7 +99,7 @@ pub async fn listen_peer(
                 info!("Peer timout, send Disconnect");
                 // If the peer is not in a closing state we can send a Disconnect
                 // packet with KeepAliveTimeout reason code
-                if !peer.read().await.closing() {
+                if !peer.read().await.closing().await {
                     let packet = Disconnect {
                         reason_code: ReasonCode::KeepAliveTimeout,
                         ..Default::default()
