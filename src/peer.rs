@@ -1,7 +1,7 @@
 use crate::{PacketSender, Session};
 use async_std::{
     net::SocketAddr,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, Weak},
 };
 use log::error;
 use sage_mqtt::Packet;
@@ -9,7 +9,7 @@ use sage_mqtt::Packet;
 #[derive(Debug)]
 pub struct Peer {
     addr: SocketAddr,
-    session: Option<Arc<RwLock<Session>>>,
+    session: Weak<RwLock<Session>>,
     packet_sender: PacketSender,
     closing: bool,
 }
@@ -18,7 +18,7 @@ impl Peer {
     pub fn new(addr: SocketAddr, packet_sender: PacketSender) -> Self {
         Peer {
             addr,
-            session: None,
+            session: Weak::default(),
             packet_sender,
             closing: false,
         }
@@ -29,11 +29,11 @@ impl Peer {
     }
 
     pub fn bind(&mut self, session: Arc<RwLock<Session>>) {
-        self.session = Some(session);
+        self.session = Arc::downgrade(&session);
     }
 
-    pub fn session(&self) -> &Option<Arc<RwLock<Session>>> {
-        &self.session
+    pub fn session(&self) -> Option<Arc<RwLock<Session>>> {
+        self.session.upgrade()
     }
 
     pub fn closing(&self) -> bool {

@@ -51,6 +51,7 @@ async fn control_connect(
         let clean_start = connect.clean_start;
         // Session creation/overtaking
         // First, we get the may be existing session from the db:
+        // TODO: This can be simplified
         let session = {
             if let Some(session) = sessions.take(&client_id) {
                 // If the existing session has a peer, it'll be disconnected with takeover
@@ -84,7 +85,6 @@ async fn control_connect(
         };
         sessions.add(session.clone());
         peer.write().await.bind(session);
-
         peer.write().await.send(connack.into()).await;
     } else {
         peer.write().await.send_close(connack.into()).await;
