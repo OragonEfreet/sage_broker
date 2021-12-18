@@ -1,11 +1,10 @@
-use crate::{Peer, Subscription};
+use crate::{Peer, Subscriptions};
 use async_std::{
     sync::{Arc, RwLock, Weak},
     task,
 };
 use log::info;
 use nanoid::nanoid;
-use std::collections::HashSet;
 
 /// Represents a client and holds all of its data, may it be active or not.
 /// If the client is connected, `peer` is used to retrieve its information and
@@ -15,7 +14,7 @@ pub struct Session {
     id: String,
     client_id: String,
     peer: Weak<Peer>,
-    subs: HashSet<Subscription>,
+    subs: Subscriptions,
 }
 
 impl Session {
@@ -55,15 +54,15 @@ impl Session {
     }
 
     /// Returns the list of subscriptions
-    pub fn subs(&self) -> &HashSet<Subscription> {
+    pub fn subs(&self) -> &Subscriptions {
         &(self.subs)
     }
 
     /// Creates a new subcription.
-    /// If the topic was already used (replacement), returns false,
-    /// otherwise true
+    /// If the topic was already used (replacement), returns true,
+    /// otherwise false
     pub fn subscribe(&mut self, topic: &str) -> bool {
-        self.subs.insert(topic.into())
+        self.subs.add(topic)
     }
 }
 
