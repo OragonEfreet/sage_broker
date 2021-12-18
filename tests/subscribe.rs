@@ -203,7 +203,7 @@ async fn mqtt_3_8_4_3() {
             let session = session.read().await;
             let subs = session.subs();
             assert_eq!(subs.len(), 1);
-            assert!(subs.contains(topic));
+            assert!(subs.contains(&topic.into()));
         }
     }
 
@@ -253,9 +253,9 @@ async fn mqtt_3_8_4_5() {
         let session = session.read().await;
         let subs = session.subs();
         assert_eq!(subs.len(), 3);
-        assert!(subs.contains("topic1".into()));
-        assert!(subs.contains("topic2".into()));
-        assert!(subs.contains("topic3".into()));
+        assert!(subs.contains(&"topic1".into()));
+        assert!(subs.contains(&"topic2".into()));
+        assert!(subs.contains(&"topic3".into()));
     }
 
     // Now resend each separately and make the same checks
@@ -273,9 +273,9 @@ async fn mqtt_3_8_4_5() {
         let session = session.read().await;
         let subs = session.subs();
         assert_eq!(subs.len(), 3);
-        assert!(subs.contains("topic1".into()));
-        assert!(subs.contains("topic2".into()));
-        assert!(subs.contains("topic3".into()));
+        assert!(subs.contains(&"topic1".into()));
+        assert!(subs.contains(&"topic2".into()));
+        assert!(subs.contains(&"topic3".into()));
     }
 
     server::stop(shutdown, server).await;

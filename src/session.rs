@@ -4,6 +4,19 @@ use log::info;
 use nanoid::nanoid;
 use std::collections::HashSet;
 
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct Subscription {
+    pub topic_filter: String,
+}
+
+impl From<&str> for Subscription {
+    fn from(value: &str) -> Self {
+        Subscription {
+            topic_filter: value.into(),
+        }
+    }
+}
+
 /// Represents a client and holds all of its data, may it be active or not.
 /// If the client is connected, `peer` is used to retrieve its information and
 /// send him packets.
@@ -12,7 +25,7 @@ pub struct Session {
     id: String,
     client_id: String,
     peer: Weak<Peer>,
-    subs: HashSet<String>,
+    subs: HashSet<Subscription>,
 }
 
 impl Session {
@@ -52,7 +65,7 @@ impl Session {
     }
 
     /// Returns the list of subscriptions
-    pub fn subs(&self) -> &HashSet<String> {
+    pub fn subs(&self) -> &HashSet<Subscription> {
         &(self.subs)
     }
 
