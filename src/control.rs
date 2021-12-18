@@ -98,8 +98,8 @@ async fn control_subscribe(packet: Subscribe, peer: Arc<Peer>) {
     // Take the client if exist, from the peer, and at it a new sub
     if let Some(session) = peer.session().await {
         let mut session = session.write().await;
-        for (topic, _) in packet.subscriptions {
-            session.subscribe(&topic);
+        for (topic, options) in packet.subscriptions {
+            session.subscribe(&topic, &options);
             suback.reason_codes.push(ReasonCode::Success);
         }
     }
