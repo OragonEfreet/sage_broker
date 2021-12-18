@@ -10,6 +10,7 @@ mod broker_settings;
 mod control;
 mod peer;
 mod session;
+mod subscription;
 mod trigger;
 
 /// All functions related to service control.
@@ -20,6 +21,7 @@ pub use broker_settings::BrokerSettings;
 use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::{Session, Sessions};
+pub use subscription::Subscription;
 pub use trigger::Trigger;
 /// The MPSC sender for controlling a running server
 pub type CommandSender = channel::Sender<(Arc<Peer>, Packet)>;
