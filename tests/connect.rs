@@ -14,8 +14,9 @@ pub use utils::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-/// MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1, the Client and Server MUST
-/// discard any existing Session and start a new Session.
+/// MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1,
+/// the Client and Server MUST discard any existing Session and start a new
+/// Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
     let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
@@ -53,8 +54,8 @@ async fn mqtt_3_1_2_4() {
     let session = session.read().await;
 
     // Test: Client ID must be same but session id must be different
-    assert_eq!(session.client_id(), client_id); // This is were client ids are compared
-    assert_ne!(session_id, session.id()); // This is were sessions are compared
+    assert_eq!(session.client_id(), client_id);
+    assert_ne!(session_id, session.id());
 
     server::stop(shutdown, server).await;
 }
@@ -97,8 +98,8 @@ async fn mqtt_3_1_2_5() {
     let session = session.read().await;
 
     // Test: Client ID and session ID must be same
-    assert_eq!(session.client_id(), client_id); // This is were client ids are compared
-    assert_eq!(session_id, session.id()); // This is were sessions are compared
+    assert_eq!(session.client_id(), client_id);
+    assert_eq!(session_id, session.id());
 
     server::stop(shutdown, server).await;
 }
@@ -131,14 +132,14 @@ async fn mqtt_3_1_2_6() {
     mqtt_3_1_4_4_connect(&second_client_id, &local_addr, Some(false)).await;
 
     let sessions = sessions.read().await;
-    assert_eq!(sessions.len(), 2); // We have 1 client exactly
+    assert_eq!(sessions.len(), 2); // We have 2 client exactly
     let session = sessions.get(&second_client_id).unwrap();
     let session = session.read().await;
 
     // Test: Client ID must be same but session id must be different
     assert_eq!(session.client_id(), second_client_id);
-    assert_ne!(session.client_id(), first_client_id); // New client's ID is not same as first one
-    assert_ne!(session.id(), session_id); // Session ids are not the same
+    assert_ne!(session.client_id(), first_client_id);
+    assert_ne!(session.id(), session_id);
 
     server::stop(shutdown, server).await;
 }
@@ -174,8 +175,9 @@ async fn connect_timeout() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the format described in
-/// section 3.1 and close the Network Connection if it does not match.
+/// MQTT-3.1.4-1: The Server MUST validate that the CONNECT packet matches the
+/// format described in section 3.1 and close the Network Connection if it does
+/// not match.
 /// NOTE we may want to add new invalidate scenarios here.
 /// Cases that would send back a connack packet
 #[async_std::test]
@@ -353,8 +355,8 @@ async fn mqtt_3_1_4_4_connect(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK packet containing
-// a 0x00 (Success) Reason Code.
+// MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK
+// packet containing a 0x00 (Success) Reason Code.
 #[async_std::test]
 async fn mqtt_3_1_4_5() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -381,8 +383,8 @@ async fn mqtt_3_1_4_5() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any data sent by the
-/// Client after the CONNECT packet except AUTH packets.
+/// MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any
+/// data sent by the Client after the CONNECT packet except AUTH packets.
 /// NOTE: Currently AUTH packet is not accepted either
 #[async_std::test]
 async fn mqtt_3_1_4_6() {
