@@ -1,5 +1,5 @@
 use log::warn;
-use sage_mqtt::{defaults, QoS};
+use sage_mqtt::{defaults, QoS, ReasonCode};
 
 /// Configuration structure for a broker.
 /// This structure is used to customize the behaviour of your broker. It is used
@@ -137,5 +137,20 @@ impl BrokerSettings {
         }
 
         valid
+    }
+
+    /// Gets the reason code a broker with these settings would reponds to a
+    /// given requested QoS:
+    /// - QoS 0 is always granted (Success)
+    /// - QoS 1 is granted (GrantedQoS1) only if maximum supported is not 0, otherwise Success
+    /// - QoS 2 is granted (GrantedQoS2) only if maximum supported is 2, otherwise UnspecifiedError
+    pub fn check_qos(&self, request: QoS) -> ReasonCode {
+        match (request, self.maximum_qos) {
+            (QoS::AtMostOnce, _) => ReasonCode::Success,
+            (QoS::AtLeastOnce, QoS::AtMostOnce) => ReasonCode::Success,
+            (QoS::AtLeastOnce, _) => ReasonCode::GrantedQoS1,
+            (QoS::ExactlyOnce, QoS::ExactlyOnce) => ReasonCode::GrantedQoS2,
+            (QoS::ExactlyOnce, _) => ReasonCode::UnspecifiedError,
+        }
     }
 }

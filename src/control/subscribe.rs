@@ -1,6 +1,6 @@
 use crate::{BrokerSettings, Peer};
 use async_std::sync::Arc;
-use sage_mqtt::{ReasonCode, SubAck, Subscribe};
+use sage_mqtt::{QoS, ReasonCode, SubAck, Subscribe};
 
 /// Simply returns a ConnAck package
 /// With the correct packet identifier
@@ -15,22 +15,58 @@ use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 /// - PacketIdentifierInUse: The specified Packet Identifier is already in use.
 /// - QuotaExceeded: An implementation or administrative imposed limit has been exceeded.
 /// - SharedSubscriptionsNotSupported: The Server does not support Shared Subscriptions for this Client.
-/// - SubscriptionIdentifiersNotSupported: The Server does not support Subscription Identifiers; the subscription is not accepted.
+/// + SubscriptionIdentifiersNotSupported: The Server does not support Subscription Identifiers; the subscription is not accepted.
 /// - WildcardSubscriptionsNotSupported: The Server does not support Wildcard Subscriptions; the subscription is not accepted.
-pub async fn run(packet: Subscribe, _: Arc<BrokerSettings>, peer: Arc<Peer>) {
-    let mut suback = SubAck {
-        packet_identifier: packet.packet_identifier,
-        ..Default::default()
-    };
-
+pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Peer>) {
     // Take the client if exist, from the peer, and at it a new sub
     if let Some(session) = peer.session().await {
-        let mut session = session.write().await;
-        for (topic, options) in packet.subscriptions {
-            suback.reason_codes.push(ReasonCode::Success);
-            session.subscribe(&topic, &options);
-        }
-    }
+        if packet.subscription_identifier.is_some() {
+            peer.send_close(
+                SubAck {
+                    packet_identifier: packet.packet_identifier,
+                    reason_codes: vec![
+                        ReasonCode::SubscriptionIdentifiersNotSupported;
+                        packet.subscriptions.len()
+                    ],
+                    ..Default::default()
+                }
+                .into(),
+            )
+            .await
+        } else {
+            let mut suback = SubAck {
+                packet_identifier: packet.packet_identifier,
+                ..Default::default()
+            };
 
-    peer.send(suback.into()).await
+            for (topic, options) in packet.subscriptions {
+                // QoS Checking
+                let reason_code = settings.check_qos(options.qos);
+
+                // SharedSubscriptionsNotSupported
+                // WildcardSubscriptionsNotSupported
+
+                suback.reason_codes.push(reason_code);
+                if matches!(
+                    reason_code,
+                    ReasonCode::Success | ReasonCode::GrantedQoS1 | ReasonCode::GrantedQoS2
+                ) {
+                    session.write().await.subscribe(&topic, &options);
+                }
+            }
+            peer.send(suback.into()).await
+        }
+    } else {
+        // If not session present, close the peer.
+        // Send an UnspecifiedError error for each topic
+        peer.send_close(
+            SubAck {
+                packet_identifier: packet.packet_identifier,
+                reason_codes: vec![ReasonCode::UnspecifiedError; packet.subscriptions.len()],
+                ..Default::default()
+            }
+            .into(),
+        )
+        .await
+    }
 }
