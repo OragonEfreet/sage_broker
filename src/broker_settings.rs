@@ -90,7 +90,6 @@ impl BrokerSettings {
     pub fn valid_default() -> Self {
         BrokerSettings {
             maximum_qos: QoS::AtMostOnce,
-            receive_maximum: 0,
             retain_enabled: false,
             ..Default::default()
         }
@@ -111,11 +110,6 @@ impl BrokerSettings {
 
         if self.maximum_qos != QoS::AtMostOnce {
             warn!("Invalid Setting value: 'maximum_qos': Only QoS Level 0 is supported");
-            valid = false;
-        }
-
-        if self.receive_maximum > 0 {
-            warn!("Invalid Setting value: 'receive_maximum': Only 0 is supported");
             valid = false;
         }
 

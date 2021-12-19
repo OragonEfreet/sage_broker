@@ -1,6 +1,6 @@
 use crate::{BrokerSettings, Peer};
 use async_std::sync::Arc;
-use sage_mqtt::{QoS, ReasonCode, SubAck, Subscribe};
+use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 
 /// Simply returns a ConnAck package
 /// With the correct packet identifier
@@ -41,10 +41,17 @@ pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Pee
 
             for (topic, options) in packet.subscriptions {
                 // QoS Checking
-                let reason_code = settings.check_qos(options.qos);
+                let mut reason_code = settings.check_qos(options.qos);
 
-                // SharedSubscriptionsNotSupported
-                // WildcardSubscriptionsNotSupported
+                // TODO make it safer
+                if topic.starts_with("$share/") {
+                    reason_code = ReasonCode::SharedSubscriptionsNotSupported;
+                }
+
+                // TODO this too
+                if topic.contains('#') || topic.contains('+') {
+                    reason_code = ReasonCode::WildcardSubscriptionsNotSupported;
+                }
 
                 suback.reason_codes.push(reason_code);
                 if matches!(
