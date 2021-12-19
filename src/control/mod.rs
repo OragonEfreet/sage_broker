@@ -5,7 +5,7 @@ use sage_mqtt::{ConnAck, Packet, PingResp, ReasonCode, SubAck, Subscribe};
 
 mod connect;
 
-pub async fn packet(
+pub async fn run(
     packet: Packet,
     sessions: Arc<RwLock<Sessions>>,
     settings: Arc<BrokerSettings>,
