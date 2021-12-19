@@ -1,9 +1,10 @@
 use crate::{BrokerSettings, Peer, Sessions};
 use async_std::sync::{Arc, RwLock};
 use log::error;
-use sage_mqtt::{ConnAck, Packet, PingResp, ReasonCode, SubAck, Subscribe};
+use sage_mqtt::{ConnAck, Packet, PingResp, ReasonCode};
 
 mod connect;
+mod subscribe;
 
 pub async fn run(
     packet: Packet,
@@ -12,7 +13,7 @@ pub async fn run(
     peer: Arc<Peer>,
 ) {
     match packet {
-        Packet::Subscribe(packet) => control_subscribe(packet, peer).await,
+        Packet::Subscribe(packet) => subscribe::run(packet, settings, peer).await,
         Packet::PingReq => peer.send(PingResp.into()).await,
         Packet::Connect(packet) => connect::run(packet, sessions, settings, peer).await,
         _ => {
@@ -27,24 +28,4 @@ pub async fn run(
             .await;
         }
     }
-}
-
-/// Simply returns a ConnAck package
-/// With the correct packet identifier
-async fn control_subscribe(packet: Subscribe, peer: Arc<Peer>) {
-    let mut suback = SubAck {
-        packet_identifier: packet.packet_identifier,
-        ..Default::default()
-    };
-
-    // Take the client if exist, from the peer, and at it a new sub
-    if let Some(session) = peer.session().await {
-        let mut session = session.write().await;
-        for (topic, options) in packet.subscriptions {
-            session.subscribe(&topic, &options);
-            suback.reason_codes.push(ReasonCode::Success);
-        }
-    }
-
-    peer.send(suback.into()).await
 }
