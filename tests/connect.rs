@@ -19,7 +19,8 @@ pub use utils::*;
 /// Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
-    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, sessions, server, local_addr, shutdown) =
+        server::spawn(BrokerSettings::valid_default()).await;
 
     let client_id = String::from("Jaden");
 
@@ -66,7 +67,8 @@ async fn mqtt_3_1_2_4() {
 /// state from the existing Session.
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
-    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, sessions, server, local_addr, shutdown) =
+        server::spawn(BrokerSettings::valid_default()).await;
 
     let client_id = String::from("Jaden");
 
@@ -110,7 +112,8 @@ async fn mqtt_3_1_2_5() {
 /// (implicitely: other sessions exist)
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
-    let (_, sessions, server, local_addr, shutdown) = server::spawn(Default::default()).await;
+    let (_, sessions, server, local_addr, shutdown) =
+        server::spawn(BrokerSettings::valid_default()).await;
 
     let first_client_id = String::from("Jaden");
     let second_client_id = String::from("Jarod");
@@ -153,7 +156,7 @@ async fn connect_timeout() {
     let timeout_delay = 1;
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: timeout_delay,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let mut stream = client::spawn(&local_addr).await;
@@ -184,7 +187,7 @@ async fn connect_timeout() {
 async fn mqtt_3_1_4_1() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let mut stream = client::spawn(&local_addr).await;
@@ -228,7 +231,7 @@ async fn mqtt_3_1_4_2() {
     // Each one will be tested against an expected ConnAck > 0x80
     let settings = BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     };
     // Vector of (input,output) tests.
     // For each set:
@@ -280,7 +283,7 @@ async fn mqtt_3_1_4_2() {
 async fn mqtt_3_1_4_3() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
 
@@ -361,7 +364,7 @@ async fn mqtt_3_1_4_4_connect(
 async fn mqtt_3_1_4_5() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let mut stream = client::spawn(&local_addr).await;
@@ -390,7 +393,7 @@ async fn mqtt_3_1_4_5() {
 async fn mqtt_3_1_4_6() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
 

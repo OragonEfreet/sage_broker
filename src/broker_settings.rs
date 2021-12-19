@@ -1,3 +1,4 @@
+use log::warn;
 use sage_mqtt::{defaults, QoS};
 
 /// Configuration structure for a broker.
@@ -80,5 +81,32 @@ impl Default for BrokerSettings {
             topic_alias_maximum: defaults::DEFAULT_TOPIC_ALIAS_MAXIMUM,
             force_keep_alive: false,
         }
+    }
+}
+
+impl BrokerSettings {
+    /// Returns a new instance on default settings restricted to valid options
+    /// according to dev current limitations
+    pub fn valid_default() -> Self {
+        BrokerSettings {
+            maximum_qos: QoS::AtMostOnce,
+            ..Default::default()
+        }
+    }
+
+    /// Check the settings against current development limitations of the broker.
+    /// Returns true only if all the current limitation are satisfied.
+    /// This function logs various errors in the currnt settings.
+    /// The command loop calls this function and shutdown the server is case of
+    /// any invalid configuration option.
+    pub fn is_valid(&self) -> bool {
+        let mut valid = true;
+
+        if self.maximum_qos != QoS::AtMostOnce {
+            warn!("Only QoS Level 0 is supported");
+            valid = false;
+        }
+
+        valid
     }
 }

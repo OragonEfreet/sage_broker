@@ -16,7 +16,7 @@ async fn mqtt_3_8_1_1() {
     // We will also check for the validity of the unique correct case
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
 
@@ -119,7 +119,7 @@ async fn mqtt_3_8_3_5() {}
 async fn mqtt_3_8_4_1() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
@@ -145,7 +145,7 @@ async fn mqtt_3_8_4_2() {
     // We send 100 random packet identifiers and expect the SubAck to return the same each
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
@@ -179,7 +179,7 @@ async fn mqtt_3_8_4_3() {
     let topic = "Topic1";
     let (_, sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
@@ -228,7 +228,7 @@ async fn mqtt_3_8_4_5() {
 
     let (_, sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
@@ -291,7 +291,7 @@ async fn mqtt_3_8_4_6() {
 
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
     let (mut stream, _) = client::connect(&local_addr, Default::default()).await;

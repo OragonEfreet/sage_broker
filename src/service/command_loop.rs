@@ -3,7 +3,7 @@ use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
 };
-use log::{debug, info};
+use log::{debug, error, info};
 use sage_mqtt::{Disconnect, ReasonCode};
 
 /// The command loop is reponsible from receiving and treating any command
@@ -21,6 +21,12 @@ pub async fn command_loop(
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
 ) -> CommandReceiver {
+    // Validate broker settings against current limitations
+    if !settings.is_valid() {
+        error!("Shutting down server due to current limitations");
+        shutdown.fire().await;
+    }
+
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.next().await {
         debug!(

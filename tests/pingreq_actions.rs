@@ -11,7 +11,7 @@ use utils::*;
 #[async_std::test]
 async fn mqtt_3_12_4_1() {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
-        ..Default::default()
+        ..BrokerSettings::valid_default()
     })
     .await;
 
