@@ -9,7 +9,7 @@ async fn main() {
     if let Some(listener) = bind("localhost:1883").await {
         let settings = Arc::new(BrokerSettings {
             keep_alive: 0,
-            ..BrokerSettings::valid_default()
+            ..BrokerSettings::default()
         });
 
         let shutdown = Trigger::default();

@@ -76,7 +76,7 @@ impl Default for BrokerSettings {
             force_session_expiry_interval: false,
             receive_maximum: defaults::DEFAULT_RECEIVE_MAXIMUM,
             maximum_qos: defaults::DEFAULT_MAXIMUM_QOS,
-            retain_enabled: false,
+            retain_enabled: true,
             maximum_packet_size: None,
             topic_alias_maximum: defaults::DEFAULT_TOPIC_ALIAS_MAXIMUM,
             force_keep_alive: false,
@@ -90,6 +90,8 @@ impl BrokerSettings {
     pub fn valid_default() -> Self {
         BrokerSettings {
             maximum_qos: QoS::AtMostOnce,
+            receive_maximum: 0,
+            retain_enabled: false,
             ..Default::default()
         }
     }
@@ -102,8 +104,35 @@ impl BrokerSettings {
     pub fn is_valid(&self) -> bool {
         let mut valid = true;
 
+        if !matches!(self.session_expiry_interval, None | Some(0xFFFFFFFF)) {
+            warn!("Invalid Setting value: 'session_expiry_interval': Sessions don't expire yet");
+            valid = false;
+        }
+
         if self.maximum_qos != QoS::AtMostOnce {
-            warn!("Only QoS Level 0 is supported");
+            warn!("Invalid Setting value: 'maximum_qos': Only QoS Level 0 is supported");
+            valid = false;
+        }
+
+        if self.receive_maximum > 0 {
+            warn!("Invalid Setting value: 'receive_maximum': Only 0 is supported");
+            valid = false;
+        }
+
+        if self.retain_enabled {
+            warn!("Invalid Setting value: 'retain_enabled': retain is not available");
+            valid = false;
+        }
+
+        if self.maximum_packet_size.is_some() {
+            warn!(
+                "Invalid Setting value: 'maximum_packet_size': Cannot enforce maximum packet size"
+            );
+            valid = false;
+        }
+
+        if self.topic_alias_maximum > 0 {
+            warn!("Invalid Setting value: 'topic_alias_maximum': Topic alias is disabled");
             valid = false;
         }
 
