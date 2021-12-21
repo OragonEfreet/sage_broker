@@ -44,12 +44,11 @@ pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Pee
                 let mut reason_code = settings.check_qos(options.qos);
 
                 // TODO make it safer
-                if topic.starts_with("$share/") {
+                if topic.share().is_some() {
                     reason_code = ReasonCode::SharedSubscriptionsNotSupported;
                 }
 
-                // TODO this too
-                if topic.contains('#') || topic.contains('+') {
+                if topic.has_wildcards() {
                     reason_code = ReasonCode::WildcardSubscriptionsNotSupported;
                 }
 
@@ -58,7 +57,7 @@ pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Pee
                     reason_code,
                     ReasonCode::Success | ReasonCode::GrantedQoS1 | ReasonCode::GrantedQoS2
                 ) {
-                    session.write().await.subscribe(&topic, &options);
+                    session.write().await.subscribe(topic, &options);
                 }
             }
             peer.send(suback.into()).await
