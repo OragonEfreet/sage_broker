@@ -6,7 +6,7 @@ use async_std::{
 };
 
 use sage_broker::BrokerSettings;
-use sage_mqtt::{Connect, Packet, Publish, ReasonCode};
+use sage_mqtt::{Connect, Packet, ReasonCode};
 use std::time::Instant;
 pub mod utils;
 use utils::client::{DisPacket, Response};
@@ -401,7 +401,7 @@ async fn mqtt_3_1_4_6() {
     let packets = vec![
         Packet::Connect(Default::default()),
         Packet::ConnAck(Default::default()),
-        Packet::Publish(Publish::with_message("Hello".try_into().unwrap(), "World")),
+        Packet::Publish(Default::default()),
         Packet::PubAck(Default::default()),
         Packet::PubRec(Default::default()),
         Packet::PubRel(Default::default()),
