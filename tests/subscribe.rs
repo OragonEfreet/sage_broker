@@ -1,6 +1,6 @@
 //! SUBSCRIBE Actions requirements
 use sage_broker::BrokerSettings;
-use sage_mqtt::{Packet, ReasonCode, Subscribe};
+use sage_mqtt::{Packet, ReasonCode, Subscribe, TopicFilter};
 pub mod utils;
 
 use utils::client::Response;
@@ -26,7 +26,10 @@ async fn mqtt_3_8_1_1() {
 
     let mut buffer = Vec::new();
     Packet::Subscribe(Subscribe {
-        subscriptions: vec![Default::default()],
+        subscriptions: vec![(
+            TopicFilter::try_from("hello/world").unwrap(),
+            Default::default(),
+        )],
         ..Default::default()
     })
     .encode(&mut buffer)
@@ -125,7 +128,10 @@ async fn mqtt_3_8_4_1() {
     let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
 
     let subscribe = Subscribe {
-        subscriptions: vec![Default::default()],
+        subscriptions: vec![(
+            TopicFilter::try_from("hello/world").unwrap(),
+            Default::default(),
+        )],
         ..Default::default()
     };
 
@@ -154,7 +160,10 @@ async fn mqtt_3_8_4_2() {
 
         let subscribe = Subscribe {
             packet_identifier,
-            subscriptions: vec![Default::default()],
+            subscriptions: vec![(
+                TopicFilter::try_from("hello/world").unwrap(),
+                Default::default(),
+            )],
             ..Default::default()
         };
 
@@ -190,7 +199,7 @@ async fn mqtt_3_8_4_3() {
     // the client
     for _ in 0..2 {
         let subscribe = Subscribe {
-            subscriptions: vec![(topic.into(), Default::default())],
+            subscriptions: vec![(topic.try_into().unwrap(), Default::default())],
             ..Default::default()
         };
 
@@ -203,7 +212,7 @@ async fn mqtt_3_8_4_3() {
             let session = session.read().await;
             let subs = session.subs();
             assert_eq!(subs.len(), 1);
-            assert!(subs.has_filter(topic));
+            assert!(subs.has_filter(&topic.try_into().unwrap()));
         }
     }
 
@@ -238,7 +247,7 @@ async fn mqtt_3_8_4_5() {
     let subscribe = Subscribe {
         subscriptions: topics
             .iter()
-            .map(|&t| (t.into(), Default::default()))
+            .map(|&t| (t.try_into().unwrap(), Default::default()))
             .collect(),
         ..Default::default()
     };
@@ -253,14 +262,14 @@ async fn mqtt_3_8_4_5() {
         let session = session.read().await;
         let subs = session.subs();
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter("topic1"));
-        assert!(subs.has_filter("topic2"));
-        assert!(subs.has_filter("topic3"));
+        assert!(subs.has_filter(&"topic1".try_into().unwrap()));
+        assert!(subs.has_filter(&"topic2".try_into().unwrap()));
+        assert!(subs.has_filter(&"topic3".try_into().unwrap()));
     }
 
     // Now resend each separately and make the same checks
     for subscribe in topics.iter().map(|&x| Subscribe {
-        subscriptions: vec![(x.into(), Default::default())],
+        subscriptions: vec![(x.try_into().unwrap(), Default::default())],
         ..Default::default()
     }) {
         assert!(matches!(
@@ -273,9 +282,9 @@ async fn mqtt_3_8_4_5() {
         let session = session.read().await;
         let subs = session.subs();
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter("topic1"));
-        assert!(subs.has_filter("topic2"));
-        assert!(subs.has_filter("topic3"));
+        assert!(subs.has_filter(&"topic1".try_into().unwrap()));
+        assert!(subs.has_filter(&"topic2".try_into().unwrap()));
+        assert!(subs.has_filter(&"topic3".try_into().unwrap()));
     }
 
     server::stop(shutdown, server).await;
@@ -299,7 +308,7 @@ async fn mqtt_3_8_4_6() {
     let subscribe = Subscribe {
         subscriptions: topics
             .iter()
-            .map(|&t| (t.into(), Default::default()))
+            .map(|&t| (t.try_into().unwrap(), Default::default()))
             .collect(),
         ..Default::default()
     };
