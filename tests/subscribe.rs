@@ -139,7 +139,41 @@ async fn mqtt_3_8_3_4() {}
 /// MQTT-3.8.3-5: The Server MUST treat a SUBSCRIBE packet as malformed if any of Reserved bits in
 /// the Payload are non-zero.
 #[async_std::test]
-async fn mqtt_3_8_3_5() {}
+async fn mqtt_3_8_3_5() {
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..BrokerSettings::valid_default()
+    })
+    .await;
+
+    for sub_payload in vec![0b0000_0001, 0b0000_0010, 0b0000_0011] {
+        let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
+        let mut buffer = Vec::new();
+        // Create a subscribe packet with a topic
+
+        let subs = Subscribe {
+            subscriptions: vec![("Cat".into(), Default::default())],
+            ..Default::default()
+        };
+        Packet::Subscribe(subs).encode(&mut buffer).await.unwrap();
+        *buffer.last_mut().unwrap() |= sub_payload; // Force Fixed Header value
+
+        let response = client::send_waitback_data(&mut stream, buffer).await;
+        if let Response::Packet(packet) = response {
+            if let Packet::Disconnect(packet) = packet {
+                assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
+            } else {
+                panic!(
+                    "Expected DISCONNECT after invalid SUBSCRIBE, got {:?}",
+                    packet
+                );
+            }
+        } else {
+            panic!("Expected packet after invalid SUBSCRIBE");
+        }
+    }
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-1: When the Server receives a SUBSCRIBE packet from a Client, the Server MUST

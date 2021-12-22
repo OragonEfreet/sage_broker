@@ -1,11 +1,6 @@
-- [ ] Refactor 002: MVC Inspired Subscription structure 
-  - [ ] Model: SubscriptionsModel trait
-  - [ ] View: SubcriptionsView
-- [ ] Maybe use internal mutability and shared for peer
 - [ ] test mqtt_3_1_4_6 should accept Auth packets under certain circumstances
 - [ ] Check for documentation of server.rs and mod.rs
 - [ ] In tests utils, assert an invalid packet is, indeed, invalid
-- [ ] The Broker struct IS the command loop
 - [X] Create control internal module with
   - [X] Control Trait
   - [X] impl for each Packet type
@@ -36,3 +31,5 @@
     - [X] Make session explicitely Arc<RwLock<_>>
     - [X] remove public access to Sessions
       - [X] Provide encapsulation functions allowing tests to work without direct access
+- [X] Maybe use internal mutability and shared for peer
+- [X] The Broker struct IS the command loop
