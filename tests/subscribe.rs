@@ -10,8 +10,41 @@ pub use utils::*;
 /// MQTT-3.8.1-1: Bits 3,2,1 and 0 of the Fixed Header of the SUBSCRIBE packet are reserved and
 /// MUST be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed and
 /// close the Network Connection
-#[async_std::test]
-async fn mqtt_3_8_1_1() {
+macro_rules! mqtt_3_8_1_1 {
+    ($($name:ident: $value:expr,)*) => {
+        $(
+
+                #[async_std::test]
+                async fn $name() {
+                    let (fixed_header, expect_success) = $value;
+                    mqtt_3_8_1_1(fixed_header, expect_success).await
+                }
+
+
+        )*
+    }
+}
+
+mqtt_3_8_1_1! {
+    mqtt_3_8_1_1_0010: (0b1000_0010, true),
+    mqtt_3_8_1_1_0000: (0b1000_0000, false),
+    mqtt_3_8_1_1_0001: (0b1000_0001, false),
+    mqtt_3_8_1_1_0011: (0b1000_0011, false),
+    mqtt_3_8_1_1_0100: (0b1000_0100, false),
+    mqtt_3_8_1_1_0101: (0b1000_0101, false),
+    mqtt_3_8_1_1_0110: (0b1000_0110, false),
+    mqtt_3_8_1_1_0111: (0b1000_0111, false),
+    mqtt_3_8_1_1_1000: (0b1000_1000, false),
+    mqtt_3_8_1_1_1001: (0b1000_1001, false),
+    mqtt_3_8_1_1_1010: (0b1000_1010, false),
+    mqtt_3_8_1_1_1011: (0b1000_1011, false),
+    mqtt_3_8_1_1_1100: (0b1000_1100, false),
+    mqtt_3_8_1_1_1101: (0b1000_1101, false),
+    mqtt_3_8_1_1_1110: (0b1000_1110, false),
+    mqtt_3_8_1_1_1111: (0b1000_1111, false),
+}
+
+async fn mqtt_3_8_1_1(fixed_header: u8, expect_success: bool) {
     // We will send any version of incorrect Fixed Headers and wait for the server's response
     // We will also check for the validity of the unique correct case
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -20,8 +53,6 @@ async fn mqtt_3_8_1_1() {
     })
     .await;
 
-    ////////////////////////////////////////////////////////////////////////////
-    let fixed_header = 0b1000_0010;
     let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
 
     let mut buffer = Vec::new();
@@ -34,41 +65,12 @@ async fn mqtt_3_8_1_1() {
     .unwrap();
     buffer[0] = fixed_header; // Force Fixed Header value
 
-    assert!(matches!(
-        client::send_waitback_data(&mut stream, buffer).await,
-        Response::Packet(Packet::SubAck(_))
-    ));
-
-    ////////////////////////////////////////////////////////////////////////////
-    let invalid_fixed_headers = vec![
-        // SUBS_3210
-        0b1000_0000,
-        0b1000_0001,
-        0b1000_0011,
-        0b1000_0100,
-        0b1000_0101,
-        0b1000_0110,
-        0b1000_0111,
-        0b1000_1000,
-        0b1000_1001,
-        0b1000_1010,
-        0b1000_1011,
-        0b1000_1100,
-        0b1000_1101,
-        0b1000_1110,
-        0b1000_1111,
-    ];
-
-    for fixed_header in invalid_fixed_headers {
-        let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
-
-        let mut buffer = Vec::new();
-        Packet::Subscribe(Default::default())
-            .encode(&mut buffer)
-            .await
-            .unwrap();
-        buffer[0] = fixed_header; // Force Fixed Header value
-
+    if expect_success {
+        assert!(matches!(
+            client::send_waitback_data(&mut stream, buffer).await,
+            Response::Packet(Packet::SubAck(_))
+        ));
+    } else {
         let response = client::send_waitback_data(&mut stream, buffer).await;
         if let Response::Packet(packet) = response {
             if let Packet::Disconnect(packet) = packet {
@@ -139,38 +141,50 @@ async fn mqtt_3_8_3_4() {}
 /// MQTT-3.8.3-5: The Server MUST treat a SUBSCRIBE packet as malformed if any of Reserved bits in
 /// the Payload are non-zero.
 #[async_std::test]
-async fn mqtt_3_8_3_5() {
+async fn mqtt_3_8_3_5_0001() {
+    mqtt_3_8_3_5(0b0000_0001).await
+}
+
+#[async_std::test]
+async fn mqtt_3_8_3_5_0010() {
+    mqtt_3_8_3_5(0b0000_0010).await
+}
+
+#[async_std::test]
+async fn mqtt_3_8_3_5_0011() {
+    mqtt_3_8_3_5(0b0000_0011).await
+}
+
+async fn mqtt_3_8_3_5(sub_payload: u8) {
     let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
     .await;
 
-    for sub_payload in vec![0b0000_0001, 0b0000_0010, 0b0000_0011] {
-        let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
-        let mut buffer = Vec::new();
-        // Create a subscribe packet with a topic
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
+    let mut buffer = Vec::new();
+    // Create a subscribe packet with a topic
 
-        let subs = Subscribe {
-            subscriptions: vec![("Cat".into(), Default::default())],
-            ..Default::default()
-        };
-        Packet::Subscribe(subs).encode(&mut buffer).await.unwrap();
-        *buffer.last_mut().unwrap() |= sub_payload; // Force Fixed Header value
+    let subs = Subscribe {
+        subscriptions: vec![("Cat".into(), Default::default())],
+        ..Default::default()
+    };
+    Packet::Subscribe(subs).encode(&mut buffer).await.unwrap();
+    *buffer.last_mut().unwrap() |= sub_payload; // Force Fixed Header value
 
-        let response = client::send_waitback_data(&mut stream, buffer).await;
-        if let Response::Packet(packet) = response {
-            if let Packet::Disconnect(packet) = packet {
-                assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
-            } else {
-                panic!(
-                    "Expected DISCONNECT after invalid SUBSCRIBE, got {:?}",
-                    packet
-                );
-            }
+    let response = client::send_waitback_data(&mut stream, buffer).await;
+    if let Response::Packet(packet) = response {
+        if let Packet::Disconnect(packet) = packet {
+            assert_eq!(packet.reason_code, ReasonCode::MalformedPacket);
         } else {
-            panic!("Expected packet after invalid SUBSCRIBE");
+            panic!(
+                "Expected DISCONNECT after invalid SUBSCRIBE, got {:?}",
+                packet
+            );
         }
+    } else {
+        panic!("Expected packet after invalid SUBSCRIBE");
     }
     server::stop(shutdown, server).await;
 }
