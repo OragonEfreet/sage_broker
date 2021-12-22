@@ -91,8 +91,37 @@ async fn mqtt_3_8_3_1() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.3-2: The Payload MUST contain at least one Topic Filter and Subscription Options pair.
+/// A SUBSCRIBE packet with no Payload is a Protocol Error
 #[async_std::test]
-async fn mqtt_3_8_3_2() {}
+async fn mqtt_3_8_3_2() {
+    // We will send a packet with no Subscription
+    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+        keep_alive: TIMEOUT_DELAY,
+        ..BrokerSettings::valid_default()
+    })
+    .await;
+
+    let (mut stream, _) = client::connect(&local_addr, Default::default()).await;
+
+    let mut buffer = Vec::new();
+    Packet::Subscribe(Default::default())
+        .encode(&mut buffer)
+        .await
+        .unwrap();
+
+    let response = client::send_waitback_data(&mut stream, buffer).await;
+    if let Response::Packet(packet) = response {
+        if let Packet::Disconnect(packet) = packet {
+            assert_eq!(packet.reason_code, ReasonCode::ProtocolError);
+        } else {
+            panic!("Expected DISCONNECT after empty SUBSCRIBE");
+        }
+    } else {
+        panic!("Expected packet after empty SUBSCRIBE");
+    }
+
+    server::stop(shutdown, server).await;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.3-3: Bit 2 of the Subscription Options represents the No Local option. If the value is
