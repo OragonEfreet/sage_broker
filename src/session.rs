@@ -5,7 +5,7 @@ use async_std::{
 };
 use log::info;
 use nanoid::nanoid;
-use sage_mqtt::{SubscriptionOptions, TopicFilter};
+use sage_mqtt::{SubscriptionOptions, Topic};
 
 /// Represents a client and holds all of its data, may it be active or not.
 /// If the client is connected, `peer` is used to retrieve its information and
@@ -62,7 +62,7 @@ impl Session {
     /// Creates a new subcription.
     /// If the topic was already used (replacement), returns true,
     /// otherwise false
-    pub fn subscribe(&mut self, topic: TopicFilter, options: &SubscriptionOptions) -> bool {
+    pub fn subscribe(&mut self, topic: Topic, options: &SubscriptionOptions) -> bool {
         self.subs.add(topic, options)
     }
 }

@@ -41,15 +41,16 @@ pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Pee
 
             for (topic, options) in packet.subscriptions {
                 // QoS Checking
-                let mut reason_code = settings.check_qos(options.qos);
+                let reason_code = settings.check_qos(options.qos);
 
-                if topic.share().is_some() {
-                    reason_code = ReasonCode::SharedSubscriptionsNotSupported;
-                }
+                // TODO
+                // if topic.share().is_some() {
+                //     reason_code = ReasonCode::SharedSubscriptionsNotSupported;
+                // }
 
-                if topic.has_wildcards() {
-                    reason_code = ReasonCode::WildcardSubscriptionsNotSupported;
-                }
+                // if topic.has_wildcards() {
+                //     reason_code = ReasonCode::WildcardSubscriptionsNotSupported;
+                // }
 
                 suback.reason_codes.push(reason_code);
                 if matches!(
