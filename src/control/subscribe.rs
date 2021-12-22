@@ -53,7 +53,6 @@ pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Pee
                 }
 
                 suback.reason_codes.push(reason_code);
-                dbg!(&suback.reason_codes);
                 if matches!(
                     reason_code,
                     ReasonCode::Success | ReasonCode::GrantedQoS1 | ReasonCode::GrantedQoS2
