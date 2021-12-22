@@ -43,7 +43,6 @@ pub async fn run(packet: Subscribe, settings: Arc<BrokerSettings>, peer: Arc<Pee
                 // QoS Checking
                 let mut reason_code = settings.check_qos(options.qos);
 
-                // TODO make it safer
                 if topic.share().is_some() {
                     reason_code = ReasonCode::SharedSubscriptionsNotSupported;
                 }
