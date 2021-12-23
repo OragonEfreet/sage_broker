@@ -1,4 +1,4 @@
-use crate::{control, BrokerSettings, CommandReceiver, Sessions, Trigger};
+use crate::{control, Broker, CommandReceiver, Sessions, Trigger};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -17,10 +17,11 @@ use sage_mqtt::{Disconnect, ReasonCode};
 /// Eventually, this task may become a spawner for other tasks
 pub async fn command_loop(
     sessions: Arc<RwLock<Sessions>>,
-    settings: Arc<BrokerSettings>,
+    broker: Arc<Broker>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
 ) -> CommandReceiver {
+    let settings = broker.settings.clone();
     // Validate broker settings against current limitations
     if !settings.is_valid() {
         error!("Shutting down server due to current limitations");

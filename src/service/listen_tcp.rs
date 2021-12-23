@@ -1,4 +1,4 @@
-use crate::{service, BrokerSettings, CommandSender, Peer, Trigger};
+use crate::{service, Broker, BrokerSettings, CommandSender, Peer, Trigger};
 use async_std::{
     channel, future,
     net::{TcpListener, TcpStream},
@@ -18,9 +18,10 @@ use std::time::Duration;
 pub async fn listen_tcp(
     listener: TcpListener,
     to_command_channel: CommandSender,
-    settings: Arc<BrokerSettings>,
+    broker: Arc<Broker>,
     shutdown: Trigger,
 ) {
+    let settings = broker.settings.clone();
     // Listen to any connection
     info!(
         "Start listening from '{:?}'",

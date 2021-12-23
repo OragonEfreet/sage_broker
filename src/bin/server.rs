@@ -1,16 +1,17 @@
 use async_std::net::{TcpListener, ToSocketAddrs};
 use async_std::{channel, sync::Arc, task};
 use log::{error, info};
-use sage_broker::{service, BrokerSettings, Trigger};
+use sage_broker::{service, Broker, BrokerSettings, Trigger};
 
 #[async_std::main]
 async fn main() {
     pretty_env_logger::init();
     if let Some(listener) = bind("localhost:1883").await {
-        let settings = Arc::new(BrokerSettings {
+        let settings = BrokerSettings {
             keep_alive: 0,
             ..BrokerSettings::valid_default()
-        });
+        };
+        let broker = Arc::new(Broker::try_from(settings).unwrap());
 
         let shutdown = Trigger::default();
 
@@ -21,7 +22,7 @@ async fn main() {
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
             Default::default(), // The list of sessions
-            settings.clone(),   // The settings
+            broker.clone(),     // The settings
             command_receiver,   // The command receiver to use
             shutdown.clone(),   // Shutdown trigger
         ));
@@ -33,7 +34,7 @@ async fn main() {
         let server = task::spawn(service::listen_tcp(
             listener,
             command_sender,
-            settings,
+            broker,
             shutdown.clone(),
         ));
 
