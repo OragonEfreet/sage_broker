@@ -17,7 +17,7 @@ pub async fn run(
         Packet::PingReq => peer.send(PingResp.into()).await,
         Packet::Connect(packet) => connect::run(packet, sessions, settings, peer).await,
         _ => {
-            error!("Unsupported packet: {:?}", packet);
+            error!("Unsupported packet: {:#?}", packet);
             peer.send_close(
                 ConnAck {
                     reason_code: ReasonCode::ImplementationSpecificError,

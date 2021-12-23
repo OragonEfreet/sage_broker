@@ -30,7 +30,7 @@ pub async fn command_loop(
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.next().await {
         debug!(
-            "[{:?}] <<< {:?}",
+            "[{:?}] <<< {:#?}",
             if let Some(s) = peer.session().await {
                 s.read().await.client_id().into()
             } else {

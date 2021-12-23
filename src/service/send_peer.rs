@@ -11,13 +11,13 @@ pub async fn send_peer(mut from_packet_channel: PacketReceiver, stream: Arc<TcpS
     info!("Start send loop for '{}'", stream.peer_addr().unwrap());
     let mut stream = &*stream;
     while let Some(packet) = from_packet_channel.next().await {
-        log::debug!(">>> {:?}", packet);
+        log::debug!(">>> {:#?}", packet);
         let mut buffer = Vec::new();
         if let Err(e) = packet.encode(&mut buffer).await {
-            error!("Cannot encode packet: {:?}", e);
+            error!("Cannot encode packet: {:#?}", e);
         }
         if let Err(e) = stream.write_all(&buffer).await {
-            error!("Cannot send packet: {:?}", e);
+            error!("Cannot send packet: {:#?}", e);
         }
     }
     info!("Stop send loop for '{}'", stream.peer_addr().unwrap());
