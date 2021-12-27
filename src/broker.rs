@@ -1,6 +1,5 @@
-use crate::{BrokerSettings, Sessions};
+use crate::{BrokerSettings, Sessions, Subscriptions};
 use async_std::sync::{Arc, RwLock};
-use sage_mqtt::ReasonCode;
 
 /// The main broker object
 #[derive(Default, Debug, Clone)]
@@ -10,19 +9,17 @@ pub struct Broker {
 
     /// List of sessions
     pub sessions: Arc<RwLock<Sessions>>,
+
+    /// List of subscriptinos
+    pub subscriptions: Arc<RwLock<Subscriptions>>,
 }
 
-impl TryFrom<BrokerSettings> for Broker {
-    type Error = ReasonCode;
-
-    fn try_from(settings: BrokerSettings) -> Result<Self, Self::Error> {
-        if settings.is_valid() {
-            Ok(Broker {
-                settings: Arc::new(settings),
-                ..Default::default()
-            })
-        } else {
-            Err(ReasonCode::ImplementationSpecificError)
+impl From<BrokerSettings> for Broker {
+    fn from(settings: BrokerSettings) -> Self {
+        assert!(settings.is_valid());
+        Broker {
+            settings: Arc::new(settings),
+            ..Default::default()
         }
     }
 }

@@ -7,11 +7,7 @@ use sage_broker::{service, Broker, BrokerSettings, Trigger};
 async fn main() {
     pretty_env_logger::init();
     if let Some(listener) = bind("localhost:1883").await {
-        let settings = BrokerSettings {
-            keep_alive: 0,
-            ..BrokerSettings::valid_default()
-        };
-        let broker = Arc::new(Broker::try_from(settings).unwrap());
+        let broker = Arc::new(Broker::from(BrokerSettings::valid_default()));
 
         let shutdown = Trigger::default();
 

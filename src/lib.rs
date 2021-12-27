@@ -23,7 +23,7 @@ pub use broker::Broker;
 use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::{Session, Sessions};
-pub use subscription::Subscriptions;
+pub use subscription::{Subscriptions, ToDropSubscriptions};
 pub use trigger::Trigger;
 /// The MPSC sender for controlling a running server
 pub type CommandSender = channel::Sender<(Arc<Peer>, Packet)>;

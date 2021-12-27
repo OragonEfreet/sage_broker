@@ -1,4 +1,4 @@
-use crate::{Peer, Subscriptions};
+use crate::{Peer, ToDropSubscriptions};
 use async_std::{
     sync::{Arc, RwLock, Weak},
     task,
@@ -15,7 +15,7 @@ pub struct Session {
     id: String,
     client_id: String,
     peer: Weak<Peer>,
-    subs: Subscriptions,
+    subs: ToDropSubscriptions,
 }
 
 impl Session {
@@ -55,7 +55,7 @@ impl Session {
     }
 
     /// Returns the list of subscriptions
-    pub fn subs(&self) -> &Subscriptions {
+    pub fn subs(&self) -> &ToDropSubscriptions {
         &(self.subs)
     }
 
