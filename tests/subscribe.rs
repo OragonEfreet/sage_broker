@@ -278,10 +278,9 @@ async fn mqtt_3_8_4_3() {
         ));
 
         {
-            let session = session.read().await;
-            let subs = session.subs();
+            let subs = broker.subscriptions.read().await;
             assert_eq!(subs.len(), 1);
-            assert!(subs.has_filter(&topic));
+            assert!(subs.has_filter(topic.clone(), session.clone()));
         }
     }
 
@@ -330,12 +329,11 @@ async fn mqtt_3_8_4_5() {
 
     // Check for the existence of the three subscriptions in the session
     {
-        let session = session.read().await;
-        let subs = session.subs();
+        let subs = broker.subscriptions.read().await;
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter(&Topic::from("topic1")));
-        assert!(subs.has_filter(&Topic::from("topic2")));
-        assert!(subs.has_filter(&Topic::from("topic3")));
+        assert!(subs.has_filter(Topic::from("topic1"), session.clone()));
+        assert!(subs.has_filter(Topic::from("topic2"), session.clone()));
+        assert!(subs.has_filter(Topic::from("topic3"), session.clone()));
     }
 
     // Now resend each separately and make the same checks
@@ -350,12 +348,11 @@ async fn mqtt_3_8_4_5() {
     }
 
     {
-        let session = session.read().await;
-        let subs = session.subs();
+        let subs = broker.subscriptions.read().await;
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter(&Topic::from("topic1")));
-        assert!(subs.has_filter(&Topic::from("topic2")));
-        assert!(subs.has_filter(&Topic::from("topic3")));
+        assert!(subs.has_filter(Topic::from("topic1"), session.clone()));
+        assert!(subs.has_filter(Topic::from("topic2"), session.clone()));
+        assert!(subs.has_filter(Topic::from("topic3"), session.clone()));
     }
 
     server::stop(shutdown, server).await;
