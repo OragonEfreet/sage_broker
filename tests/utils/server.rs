@@ -1,16 +1,15 @@
 use async_std::{
     channel,
     net::{SocketAddr, TcpListener},
-    sync::{Arc, RwLock},
+    sync::Arc,
     task::{self, JoinHandle},
 };
-use sage_broker::{service, Broker, BrokerSettings, CommandReceiver, Sessions, Trigger};
+use sage_broker::{service, Broker, BrokerSettings, CommandReceiver, Trigger};
 
 pub async fn spawn(
     settings: BrokerSettings,
 ) -> (
     Arc<Broker>,
-    Arc<RwLock<Sessions>>,
     JoinHandle<CommandReceiver>,
     SocketAddr,
     Trigger,
@@ -22,17 +21,12 @@ pub async fn spawn(
 
     let broker = Arc::new(Broker {
         settings: Arc::new(settings),
+        ..Default::default()
     });
 
-    let sessions = Arc::new(RwLock::new(Sessions::default()));
-    let service_task = task::spawn(run_server(
-        listener,
-        sessions.clone(),
-        broker.clone(),
-        shutdown.clone(),
-    ));
+    let service_task = task::spawn(run_server(listener, broker.clone(), shutdown.clone()));
 
-    (broker, sessions, service_task, local_addr, shutdown)
+    (broker, service_task, local_addr, shutdown)
 }
 
 pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> CommandReceiver {
@@ -42,13 +36,11 @@ pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> Com
 
 async fn run_server(
     listener: TcpListener,
-    sessions: Arc<RwLock<Sessions>>,
     broker: Arc<Broker>,
     shutdown: Trigger,
 ) -> CommandReceiver {
     let (command_sender, command_receiver) = channel::unbounded();
     let command_loop = task::spawn(service::command_loop(
-        sessions.clone(),
         broker.clone(),
         command_receiver,
         shutdown.clone(),

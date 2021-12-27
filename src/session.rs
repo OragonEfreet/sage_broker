@@ -68,7 +68,7 @@ impl Session {
 }
 
 /// Holds sessions manipulated from the Command Loop
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Sessions {
     db: Vec<Arc<RwLock<Session>>>,
 }

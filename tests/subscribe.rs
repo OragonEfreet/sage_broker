@@ -47,7 +47,7 @@ mqtt_3_8_1_1! {
 async fn mqtt_3_8_1_1(fixed_header: u8, expect_success: bool) {
     // We will send any version of incorrect Fixed Headers and wait for the server's response
     // We will also check for the validity of the unique correct case
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -97,7 +97,7 @@ async fn mqtt_3_8_3_1() {}
 #[async_std::test]
 async fn mqtt_3_8_3_2() {
     // We will send a packet with no Subscription
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -142,21 +142,21 @@ async fn mqtt_3_8_3_4() {}
 /// the Payload are non-zero.
 #[async_std::test]
 async fn mqtt_3_8_3_5_0001() {
-    mqtt_3_8_3_5(0b0000_0001).await
+    mqtt_3_8_3_5(0b0100_0000).await
 }
 
 #[async_std::test]
 async fn mqtt_3_8_3_5_0010() {
-    mqtt_3_8_3_5(0b0000_0010).await
+    mqtt_3_8_3_5(0b1000_0000).await
 }
 
 #[async_std::test]
 async fn mqtt_3_8_3_5_0011() {
-    mqtt_3_8_3_5(0b0000_0011).await
+    mqtt_3_8_3_5(0b1100_0000).await
 }
 
 async fn mqtt_3_8_3_5(sub_payload: u8) {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -194,7 +194,7 @@ async fn mqtt_3_8_3_5(sub_payload: u8) {
 /// respond with a SUBACK packet.
 #[async_std::test]
 async fn mqtt_3_8_4_1() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -220,7 +220,7 @@ async fn mqtt_3_8_4_1() {
 #[async_std::test]
 async fn mqtt_3_8_4_2() {
     // We send 100 random packet identifiers and expect the SubAck to return the same each
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -254,11 +254,12 @@ async fn mqtt_3_8_4_2() {
 #[async_std::test]
 async fn mqtt_3_8_4_3() {
     let topic = Topic::from("Topic1");
-    let (_, sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (broker, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
     .await;
+    let sessions = broker.sessions.clone();
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
     let sessions = sessions.read().await;
     let session = sessions.get(&client_id.unwrap()).unwrap();
@@ -303,11 +304,13 @@ async fn mqtt_3_8_4_5() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
 
-    let (_, sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (broker, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
     .await;
+    let sessions = broker.sessions.clone();
+
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
     let sessions = sessions.read().await;
     let session = sessions.get(&client_id.unwrap()).unwrap();
@@ -366,7 +369,7 @@ async fn mqtt_3_8_4_6() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
 
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })

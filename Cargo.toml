@@ -19,8 +19,8 @@ futures = "0.3.14"
 log = "0.4.14"
 nanoid = "0.4.0"
 pretty_env_logger = "0.4.0"
-sage_mqtt = "0.4" 
-#sage_mqtt = { git = "https://github.com/OragonEfreet/sage_mqtt.git", branch = "topic" }
+#sage_mqtt = "0.4" 
+sage_mqtt = { git = "https://github.com/OragonEfreet/sage_mqtt.git", branch = "main" }
 
 [dev-dependencies]
 rand = "0.8.0"

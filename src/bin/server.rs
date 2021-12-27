@@ -21,10 +21,9 @@ async fn main() {
 
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
-            Default::default(), // The list of sessions
-            broker.clone(),     // The settings
-            command_receiver,   // The command receiver to use
-            shutdown.clone(),   // Shutdown trigger
+            broker.clone(),   // The settings
+            command_receiver, // The command receiver to use
+            shutdown.clone(), // Shutdown trigger
         ));
 
         // Launch the listen server.

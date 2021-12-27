@@ -1,5 +1,5 @@
-use crate::BrokerSettings;
-use async_std::sync::Arc;
+use crate::{BrokerSettings, Sessions};
+use async_std::sync::{Arc, RwLock};
 use sage_mqtt::ReasonCode;
 
 /// The main broker object
@@ -7,6 +7,9 @@ use sage_mqtt::ReasonCode;
 pub struct Broker {
     /// Settings used for this broker
     pub settings: Arc<BrokerSettings>,
+
+    /// List of sessions
+    pub sessions: Arc<RwLock<Sessions>>,
 }
 
 impl TryFrom<BrokerSettings> for Broker {
