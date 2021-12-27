@@ -60,7 +60,8 @@ pub async fn run(broker: Arc<Broker>, packet: Subscribe, peer: Arc<Peer>) {
                         .subscriptions
                         .write()
                         .await
-                        .add(topic, session.clone(), options);
+                        .add(topic, session.clone(), options)
+                        .await;
                 }
             }
             peer.send(suback.into()).await
