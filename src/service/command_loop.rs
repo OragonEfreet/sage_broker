@@ -47,7 +47,7 @@ pub async fn command_loop(
             )
             .await;
         } else {
-            control::run(packet, broker.sessions.clone(), settings.clone(), peer).await;
+            control::run(broker.clone(), packet, peer).await;
         };
     }
     info!("Stop command loop");

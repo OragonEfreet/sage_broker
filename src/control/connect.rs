@@ -1,18 +1,13 @@
-use crate::{BrokerSettings, Peer, Session, Sessions};
+use crate::{Broker, BrokerSettings, Peer, Session};
 use async_std::sync::{Arc, RwLock};
 use nanoid::nanoid;
 use sage_mqtt::{ConnAck, Connect, Disconnect, ReasonCode};
 use std::cmp::min;
 
-pub async fn run(
-    connect: Connect,
-    sessions: Arc<RwLock<Sessions>>,
-    settings: Arc<BrokerSettings>,
-    peer: Arc<Peer>,
-) {
+pub async fn run(broker: Arc<Broker>, connect: Connect, peer: Arc<Peer>) {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
-    let mut connack = acknowledge_connect(settings, &connect);
+    let mut connack = acknowledge_connect(broker.settings.clone(), &connect);
 
     if connack.reason_code == ReasonCode::Success {
         let client_id = connack
@@ -21,7 +16,7 @@ pub async fn run(
             .or(connect.client_id)
             .unwrap();
 
-        let mut sessions = sessions.write().await;
+        let mut sessions = broker.sessions.write().await;
 
         let clean_start = connect.clean_start;
         // Session creation/overtaking
