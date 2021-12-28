@@ -67,12 +67,6 @@ impl Session {
         self.peer.upgrade()
     }
 
-    /// Changes the peer of the session.
-    /// If a peer was already set, it is unlinked
-    pub fn set_peer(&mut self, peer: Arc<Peer>) {
-        self.peer = Arc::downgrade(&peer);
-    }
-
     /// Gets the subscriptions this session has
     pub fn subs(&self) -> &RwLock<Subs> {
         &self.subs
