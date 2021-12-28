@@ -1,4 +1,4 @@
-use crate::Peer;
+use crate::{Peer, Subs};
 use async_std::{
     sync::{Arc, RwLock, Weak},
     task,
@@ -14,6 +14,7 @@ pub struct Session {
     id: String,
     client_id: String,
     peer: Weak<Peer>,
+    subs: RwLock<Subs>,
 }
 
 impl Session {
@@ -26,6 +27,7 @@ impl Session {
             id,
             client_id: client_id.into(),
             peer: Arc::downgrade(&peer),
+            subs: Default::default(),
         }
     }
 
@@ -51,6 +53,11 @@ impl Session {
     /// If a peer was already set, it is unlinked
     pub fn set_peer(&mut self, peer: Arc<Peer>) {
         self.peer = Arc::downgrade(&peer);
+    }
+
+    /// Gets the subscriptions this session has
+    pub fn subs(&self) -> &RwLock<Subs> {
+        &self.subs
     }
 }
 

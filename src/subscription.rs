@@ -24,3 +24,25 @@ impl Subscriptions {
         self.db.contains_key(&(topic, client_id.into()))
     }
 }
+
+/// The list of all subcriptions registered by the broker
+#[derive(Default, Debug)]
+pub struct Subs;
+
+impl Subs {
+    /// The number of subscriptions
+    pub fn len(&self) -> usize {
+        0
+    }
+
+    /// Add a subscription for the given filter to the given session
+    /// Returns true if it replaces an existing one
+    pub fn add(&mut self, _: Topic, _: SubscriptionOptions) -> bool {
+        false
+    }
+
+    /// Check wether the given session is subscribed to the given filter
+    pub fn has_filter(&self, _: Topic) -> bool {
+        false
+    }
+}
