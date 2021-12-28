@@ -5,17 +5,17 @@ use async_std::{
     task,
 };
 use log::{error, info};
-use sage_broker::{service, Broker, BrokerSettings, Sessions, Trigger};
+use sage_broker::{service, BrokerSettings, Sessions, Subscriptions, Trigger};
 
 #[async_std::main]
 async fn main() {
     pretty_env_logger::init();
     if let Some(listener) = bind("localhost:1883").await {
         let settings = Arc::new(BrokerSettings::valid_default());
-        let broker = Arc::new(Broker::default());
 
         let shutdown = Trigger::default();
         let sessions = Arc::new(RwLock::new(Sessions::default()));
+        let subscriptions = Arc::new(RwLock::new(Subscriptions::default()));
 
         // Create the command packet channel and spawn a new
         // task for command packet treatment.
@@ -25,7 +25,7 @@ async fn main() {
         let command_loop = task::spawn(service::command_loop(
             settings.clone(),
             sessions,
-            broker,           // The settings
+            subscriptions,    // The settings
             command_receiver, // The command receiver to use
             shutdown.clone(), // Shutdown trigger
         ));

@@ -1,4 +1,4 @@
-use crate::{control, Broker, BrokerSettings, CommandReceiver, Sessions, Trigger};
+use crate::{control, BrokerSettings, CommandReceiver, Sessions, Subscriptions, Trigger};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -18,7 +18,7 @@ use sage_mqtt::{Disconnect, ReasonCode};
 pub async fn command_loop(
     settings: Arc<BrokerSettings>,
     sessions: Arc<RwLock<Sessions>>,
-    broker: Arc<Broker>,
+    subscriptions: Arc<RwLock<Subscriptions>>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
 ) -> CommandReceiver {
@@ -54,7 +54,7 @@ pub async fn command_loop(
             control::run(
                 settings.clone(),
                 sessions.clone(),
-                broker.clone(),
+                subscriptions.clone(),
                 packet,
                 peer,
             )

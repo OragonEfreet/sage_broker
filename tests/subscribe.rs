@@ -254,7 +254,7 @@ async fn mqtt_3_8_4_2() {
 #[async_std::test]
 async fn mqtt_3_8_4_3() {
     let topic = Topic::from("Topic1");
-    let (sessions, broker, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (sessions, subs, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -276,7 +276,7 @@ async fn mqtt_3_8_4_3() {
         ));
 
         {
-            let subs = broker.subscriptions.read().await;
+            let subs = subs.read().await;
             assert_eq!(subs.len(), 1);
             assert!(subs.has_filter(topic.clone(), session.read().await.client_id()));
         }
@@ -301,7 +301,7 @@ async fn mqtt_3_8_4_5() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
 
-    let (sessions, broker, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (sessions, subs, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -325,7 +325,7 @@ async fn mqtt_3_8_4_5() {
 
     // Check for the existence of the three subscriptions in the session
     {
-        let subs = broker.subscriptions.read().await;
+        let subs = subs.read().await;
         assert_eq!(subs.len(), 3);
         assert!(subs.has_filter(Topic::from("topic1"), session.read().await.client_id()));
         assert!(subs.has_filter(Topic::from("topic2"), session.read().await.client_id()));
@@ -344,7 +344,7 @@ async fn mqtt_3_8_4_5() {
     }
 
     {
-        let subs = broker.subscriptions.read().await;
+        let subs = subs.read().await;
         assert_eq!(subs.len(), 3);
         assert!(subs.has_filter(Topic::from("topic1"), session.read().await.client_id()));
         assert!(subs.has_filter(Topic::from("topic2"), session.read().await.client_id()));

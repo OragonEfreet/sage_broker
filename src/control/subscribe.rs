@@ -1,5 +1,5 @@
-use crate::{Broker, BrokerSettings, Peer};
-use async_std::sync::Arc;
+use crate::{BrokerSettings, Peer, Subscriptions};
+use async_std::sync::{Arc, RwLock};
 use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 
 /// Simply returns a ConnAck package
@@ -19,7 +19,7 @@ use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 /// - WildcardSubscriptionsNotSupported: The Server does not support Wildcard Subscriptions; the subscription is not accepted.
 pub async fn run(
     settings: Arc<BrokerSettings>,
-    broker: Arc<Broker>,
+    subscriptions: Arc<RwLock<Subscriptions>>,
     packet: Subscribe,
     peer: Arc<Peer>,
 ) {
@@ -61,7 +61,7 @@ pub async fn run(
                     reason_code,
                     ReasonCode::Success | ReasonCode::GrantedQoS1 | ReasonCode::GrantedQoS2
                 ) {
-                    broker.subscriptions.write().await.add(
+                    subscriptions.write().await.add(
                         topic,
                         session.read().await.client_id(),
                         options,
