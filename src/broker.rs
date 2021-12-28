@@ -1,5 +1,5 @@
 use crate::{BrokerSettings, Sessions, Subscriptions};
-use async_std::sync::{Arc, RwLock};
+use async_std::sync::RwLock;
 
 /// The main broker object
 #[derive(Default, Debug)]
@@ -11,7 +11,7 @@ pub struct Broker {
     pub sessions: RwLock<Sessions>,
 
     /// List of subscriptinos
-    pub subscriptions: Arc<RwLock<Subscriptions>>,
+    pub subscriptions: RwLock<Subscriptions>,
 }
 
 impl From<BrokerSettings> for Broker {
