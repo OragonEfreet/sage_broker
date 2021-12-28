@@ -31,6 +31,24 @@ impl Session {
         }
     }
 
+    /// Creates a new session by taking another one
+    /// TODO
+    pub async fn take(from: Arc<RwLock<Session>>, peer: Arc<Peer>) -> Self {
+        let from = from.read().await;
+        info!(
+            "Taking session: Unique ID:{:?}, Client ID:{:?}",
+            from.id, from.client_id
+        );
+        let subs = from.subs.read().await.clone();
+
+        Session {
+            id: from.id.clone(),
+            client_id: from.client_id.clone(),
+            peer: Arc::downgrade(&peer),
+            subs: RwLock::new(subs),
+        }
+    }
+
     /// A unique ID that cannot be changed neither can collide with
     /// other instances of `Session`
     /// This ID is not part of MQTT specification but is used to ensure a new

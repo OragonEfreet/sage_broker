@@ -41,16 +41,13 @@ pub async fn run(
 
                 if clean_start {
                     connack.session_present = false;
-                    let client_id = client_id.clone();
                     Arc::new(RwLock::new(Session::new(&client_id, peer.clone())))
                 } else {
                     connack.session_present = true;
-                    session.write().await.set_peer(peer.clone());
-                    session
+                    Arc::new(RwLock::new(Session::take(session, peer.clone()).await))
                 }
             } else {
                 connack.session_present = false;
-                let client_id = client_id.clone();
                 Arc::new(RwLock::new(Session::new(&client_id, peer.clone())))
             }
         };

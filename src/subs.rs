@@ -2,7 +2,7 @@ use sage_mqtt::{SubscriptionOptions, Topic};
 use std::collections::HashMap;
 
 /// The list of all subcriptions registered by the broker
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Subs {
     db: HashMap<Topic, SubscriptionOptions>,
 }
