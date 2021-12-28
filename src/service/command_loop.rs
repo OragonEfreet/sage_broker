@@ -32,7 +32,7 @@ pub async fn command_loop(
         debug!(
             "[{:?}] <<< {:#?}",
             if let Some(s) = peer.session().await {
-                s.read().await.client_id().into()
+                s.client_id().into()
             } else {
                 String::from("N/A")
             },

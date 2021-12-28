@@ -30,8 +30,7 @@ impl Session {
 
     /// Creates a new session by taking another one
     /// TODO
-    pub async fn take(from: Arc<RwLock<Session>>, peer: Arc<Peer>) -> Self {
-        let from = from.read().await;
+    pub async fn take(from: Arc<Session>, peer: Arc<Peer>) -> Self {
         info!(
             "Taking session: Unique ID:{:?}, Client ID:{:?}",
             from.id, from.client_id

@@ -28,7 +28,7 @@ pub async fn run(
         let session = {
             if let Some(session) = sessions.write().await.take(&client_id) {
                 // If the existing session has a peer, it'll be disconnected with takeover
-                if let Some(peer) = session.read().await.peer() {
+                if let Some(peer) = session.peer() {
                     peer.send_close(
                         Disconnect {
                             reason_code: ReasonCode::SessionTakenOver,
@@ -41,14 +41,14 @@ pub async fn run(
 
                 if clean_start {
                     connack.session_present = false;
-                    Arc::new(RwLock::new(Session::new(&client_id, peer.clone())))
+                    Arc::new(Session::new(&client_id, peer.clone()))
                 } else {
                     connack.session_present = true;
-                    Arc::new(RwLock::new(Session::take(session, peer.clone()).await))
+                    Arc::new(Session::take(session, peer.clone()).await)
                 }
             } else {
                 connack.session_present = false;
-                Arc::new(RwLock::new(Session::new(&client_id, peer.clone())))
+                Arc::new(Session::new(&client_id, peer.clone()))
             }
         };
         sessions.write().await.add(session.clone());

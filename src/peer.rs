@@ -9,7 +9,7 @@ use sage_mqtt::Packet;
 #[derive(Debug)]
 pub struct Peer {
     addr: SocketAddr,
-    session: RwLock<Weak<RwLock<Session>>>,
+    session: RwLock<Weak<Session>>,
     packet_sender: PacketSender,
     closing: Trigger,
 }
@@ -28,11 +28,11 @@ impl Peer {
         &self.addr
     }
 
-    pub async fn bind(&self, session: Arc<RwLock<Session>>) {
+    pub async fn bind(&self, session: Arc<Session>) {
         *(self.session.write().await) = Arc::downgrade(&session);
     }
 
-    pub async fn session(&self) -> Option<Arc<RwLock<Session>>> {
+    pub async fn session(&self) -> Option<Arc<Session>> {
         self.session.read().await.upgrade()
     }
 

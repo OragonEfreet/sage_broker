@@ -276,7 +276,6 @@ async fn mqtt_3_8_4_3() {
         ));
 
         {
-            let session = session.read().await;
             let subs = session.subs().read().await;
             assert_eq!(subs.len(), 1);
             assert!(subs.has_filter(topic.clone(),));
@@ -310,7 +309,6 @@ async fn mqtt_3_8_4_5() {
 
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
     let session = sessions.read().await.get(&client_id.unwrap()).unwrap();
-    let session = session.read().await;
 
     let subscribe = Subscribe {
         subscriptions: topics

@@ -32,7 +32,6 @@ async fn mqtt_3_1_2_4() {
         let sessions = sessions.read().await;
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&client_id).unwrap();
-        let session = session.read().await;
         assert_eq!(session.client_id(), client_id);
         String::from(session.id())
     };
@@ -52,7 +51,6 @@ async fn mqtt_3_1_2_4() {
     let sessions = sessions.read().await;
     assert_eq!(sessions.len(), 1); // We have 1 client exactly
     let session = sessions.get(&client_id).unwrap();
-    let session = session.read().await;
 
     // Test: Client ID must be same but session id must be different
     assert_eq!(session.client_id(), client_id);
@@ -80,7 +78,6 @@ async fn mqtt_3_1_2_5() {
         let sessions = sessions.read().await;
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&client_id).unwrap();
-        let session = session.read().await;
         assert_eq!(session.client_id(), client_id);
         String::from(session.id())
     };
@@ -97,7 +94,6 @@ async fn mqtt_3_1_2_5() {
     let sessions = sessions.read().await;
     assert_eq!(sessions.len(), 1); // Because previous session was taken over
     let session = sessions.get(&client_id).unwrap();
-    let session = session.read().await;
 
     // Test: Client ID and session ID must be same
     assert_eq!(session.client_id(), client_id);
@@ -126,7 +122,6 @@ async fn mqtt_3_1_2_6() {
         let sessions = sessions.read().await;
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&first_client_id).unwrap();
-        let session = session.read().await;
         assert_eq!(session.client_id(), first_client_id);
         String::from(session.id())
     };
@@ -137,7 +132,6 @@ async fn mqtt_3_1_2_6() {
     let sessions = sessions.read().await;
     assert_eq!(sessions.len(), 2); // We have 2 client exactly
     let session = sessions.get(&second_client_id).unwrap();
-    let session = session.read().await;
 
     // Test: Client ID must be same but session id must be different
     assert_eq!(session.client_id(), second_client_id);

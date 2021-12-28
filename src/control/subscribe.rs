@@ -56,13 +56,7 @@ pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Pee
                     reason_code,
                     ReasonCode::Success | ReasonCode::GrantedQoS1 | ReasonCode::GrantedQoS2
                 ) {
-                    session
-                        .read()
-                        .await
-                        .subs()
-                        .write()
-                        .await
-                        .add(topic, options);
+                    session.subs().write().await.add(topic, options);
                 }
             }
             peer.send(suback.into()).await
