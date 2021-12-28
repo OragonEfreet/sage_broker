@@ -7,7 +7,6 @@ use async_std::{channel, sync::Arc};
 
 mod broker_settings;
 //mod command;
-mod broker;
 mod control;
 mod peer;
 mod session;
@@ -19,7 +18,6 @@ pub mod service;
 
 pub use broker_settings::BrokerSettings;
 //use command::Command;
-pub use broker::Broker;
 use peer::Peer;
 use sage_mqtt::Packet;
 pub use session::{Session, Sessions};
