@@ -31,6 +31,8 @@ impl Session {
 
     /// A unique ID that cannot be changed neither can collide with
     /// other instances of `Session`
+    /// This ID is not part of MQTT specification but is used to ensure a new
+    /// session can be created with a same client_id
     pub fn id(&self) -> &str {
         &self.id
     }

@@ -1,5 +1,3 @@
-use crate::Session;
-use async_std::sync::{Arc, RwLock};
 use sage_mqtt::{SubscriptionOptions, Topic};
 use std::collections::HashMap;
 
@@ -17,20 +15,12 @@ impl Subscriptions {
 
     /// Add a subscription for the given filter to the given session
     /// Returns true if it replaces an existing one
-    pub async fn add(
-        &mut self,
-        topic: Topic,
-        session: Arc<RwLock<Session>>,
-        options: SubscriptionOptions,
-    ) -> bool {
-        self.db
-            .insert((topic, session.read().await.id().into()), options)
-            .is_some()
+    pub fn add(&mut self, topic: Topic, client_id: &str, options: SubscriptionOptions) -> bool {
+        self.db.insert((topic, client_id.into()), options).is_some()
     }
 
     /// Check wether the given session is subscribed to the given filter
-    pub async fn has_filter(&self, topic: Topic, session: Arc<RwLock<Session>>) -> bool {
-        self.db
-            .contains_key(&(topic, String::from(session.read().await.id())))
+    pub fn has_filter(&self, topic: Topic, client_id: &str) -> bool {
+        self.db.contains_key(&(topic, client_id.into()))
     }
 }

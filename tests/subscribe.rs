@@ -283,7 +283,7 @@ async fn mqtt_3_8_4_3() {
         {
             let subs = broker.subscriptions.read().await;
             assert_eq!(subs.len(), 1);
-            assert!(subs.has_filter(topic.clone(), session.clone()).await);
+            assert!(subs.has_filter(topic.clone(), session.read().await.client_id()));
         }
     }
 
@@ -337,18 +337,9 @@ async fn mqtt_3_8_4_5() {
     {
         let subs = broker.subscriptions.read().await;
         assert_eq!(subs.len(), 3);
-        assert!(
-            subs.has_filter(Topic::from("topic1"), session.clone())
-                .await
-        );
-        assert!(
-            subs.has_filter(Topic::from("topic2"), session.clone())
-                .await
-        );
-        assert!(
-            subs.has_filter(Topic::from("topic3"), session.clone())
-                .await
-        );
+        assert!(subs.has_filter(Topic::from("topic1"), session.read().await.client_id()));
+        assert!(subs.has_filter(Topic::from("topic2"), session.read().await.client_id()));
+        assert!(subs.has_filter(Topic::from("topic3"), session.read().await.client_id()));
     }
 
     // Now resend each separately and make the same checks
@@ -365,18 +356,9 @@ async fn mqtt_3_8_4_5() {
     {
         let subs = broker.subscriptions.read().await;
         assert_eq!(subs.len(), 3);
-        assert!(
-            subs.has_filter(Topic::from("topic1"), session.clone())
-                .await
-        );
-        assert!(
-            subs.has_filter(Topic::from("topic2"), session.clone())
-                .await
-        );
-        assert!(
-            subs.has_filter(Topic::from("topic3"), session.clone())
-                .await
-        );
+        assert!(subs.has_filter(Topic::from("topic1"), session.read().await.client_id()));
+        assert!(subs.has_filter(Topic::from("topic2"), session.read().await.client_id()));
+        assert!(subs.has_filter(Topic::from("topic3"), session.read().await.client_id()));
     }
 
     server::stop(shutdown, server).await;
