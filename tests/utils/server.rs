@@ -19,9 +19,15 @@ pub async fn spawn(
 
     let shutdown = Trigger::default();
 
-    let broker = Arc::new(Broker::from(settings));
+    let settings = Arc::new(settings);
+    let broker = Arc::new(Broker::default());
 
-    let service_task = task::spawn(run_server(listener, broker.clone(), shutdown.clone()));
+    let service_task = task::spawn(run_server(
+        listener,
+        settings.clone(),
+        broker.clone(),
+        shutdown.clone(),
+    ));
 
     (broker, service_task, local_addr, shutdown)
 }
@@ -33,15 +39,17 @@ pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> Com
 
 async fn run_server(
     listener: TcpListener,
+    settings: Arc<BrokerSettings>,
     broker: Arc<Broker>,
     shutdown: Trigger,
 ) -> CommandReceiver {
     let (command_sender, command_receiver) = channel::unbounded();
     let command_loop = task::spawn(service::command_loop(
+        settings.clone(),
         broker.clone(),
         command_receiver,
         shutdown.clone(),
     ));
-    service::listen_tcp(listener, command_sender, broker, shutdown).await;
+    service::listen_tcp(listener, command_sender, settings, shutdown).await;
     command_loop.await
 }

@@ -7,7 +7,8 @@ use sage_broker::{service, Broker, BrokerSettings, Trigger};
 async fn main() {
     pretty_env_logger::init();
     if let Some(listener) = bind("localhost:1883").await {
-        let broker = Arc::new(Broker::from(BrokerSettings::valid_default()));
+        let settings = Arc::new(BrokerSettings::valid_default());
+        let broker = Arc::new(Broker::default());
 
         let shutdown = Trigger::default();
 
@@ -17,7 +18,8 @@ async fn main() {
 
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
-            broker.clone(),   // The settings
+            settings.clone(),
+            broker,           // The settings
             command_receiver, // The command receiver to use
             shutdown.clone(), // Shutdown trigger
         ));
@@ -29,7 +31,7 @@ async fn main() {
         let server = task::spawn(service::listen_tcp(
             listener,
             command_sender,
-            broker,
+            settings,
             shutdown.clone(),
         ));
 

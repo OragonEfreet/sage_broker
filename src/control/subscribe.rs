@@ -1,4 +1,4 @@
-use crate::{Broker, Peer};
+use crate::{Broker, BrokerSettings, Peer};
 use async_std::sync::Arc;
 use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 
@@ -17,7 +17,12 @@ use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 /// - SharedSubscriptionsNotSupported: The Server does not support Shared Subscriptions for this Client.
 /// + SubscriptionIdentifiersNotSupported: The Server does not support Subscription Identifiers; the subscription is not accepted.
 /// - WildcardSubscriptionsNotSupported: The Server does not support Wildcard Subscriptions; the subscription is not accepted.
-pub async fn run(broker: Arc<Broker>, packet: Subscribe, peer: Arc<Peer>) {
+pub async fn run(
+    settings: Arc<BrokerSettings>,
+    broker: Arc<Broker>,
+    packet: Subscribe,
+    peer: Arc<Peer>,
+) {
     // Take the client if exist, from the peer, and at it a new sub
     if let Some(session) = peer.session().await {
         if packet.subscription_identifier.is_some() {
@@ -41,7 +46,7 @@ pub async fn run(broker: Arc<Broker>, packet: Subscribe, peer: Arc<Peer>) {
 
             for (topic, options) in packet.subscriptions {
                 // QoS Checking
-                let mut reason_code = broker.settings.check_qos(options.qos);
+                let mut reason_code = settings.check_qos(options.qos);
 
                 if topic.share().is_some() {
                     reason_code = ReasonCode::SharedSubscriptionsNotSupported;

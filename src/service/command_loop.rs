@@ -1,4 +1,4 @@
-use crate::{control, Broker, CommandReceiver, Trigger};
+use crate::{control, Broker, BrokerSettings, CommandReceiver, Trigger};
 use async_std::{prelude::*, sync::Arc};
 use log::{debug, error, info};
 use sage_mqtt::{Disconnect, ReasonCode};
@@ -13,11 +13,11 @@ use sage_mqtt::{Disconnect, ReasonCode};
 /// The command loop ends.
 /// Eventually, this task may become a spawner for other tasks
 pub async fn command_loop(
+    settings: Arc<BrokerSettings>,
     broker: Arc<Broker>,
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
 ) -> CommandReceiver {
-    let settings = broker.settings.clone();
     // Validate broker settings against current limitations
     if !settings.is_valid() {
         error!("Shutting down server due to current limitations");
@@ -47,7 +47,7 @@ pub async fn command_loop(
             )
             .await;
         } else {
-            control::run(broker.clone(), packet, peer).await;
+            control::run(settings.clone(), broker.clone(), packet, peer).await;
         };
     }
     info!("Stop command loop");
