@@ -10,7 +10,7 @@ use nanoid::nanoid;
 pub struct Session {
     id: String,
     client_id: String,
-    peer: Weak<Peer>,
+    peer: RwLock<Weak<Peer>>,
     subs: RwLock<Subs>,
 }
 
@@ -23,25 +23,8 @@ impl Session {
         Session {
             id,
             client_id: client_id.into(),
-            peer: Arc::downgrade(&peer),
+            peer: RwLock::new(Arc::downgrade(&peer)),
             subs: Default::default(),
-        }
-    }
-
-    /// Creates a new session by taking another one
-    /// TODO
-    pub async fn take(from: Arc<Session>, peer: Arc<Peer>) -> Self {
-        info!(
-            "Taking session: Unique ID:{:?}, Client ID:{:?}",
-            from.id, from.client_id
-        );
-        let subs = from.subs.read().await.clone();
-
-        Session {
-            id: from.id.clone(),
-            client_id: from.client_id.clone(),
-            peer: Arc::downgrade(&peer),
-            subs: RwLock::new(subs),
         }
     }
 
@@ -58,9 +41,14 @@ impl Session {
         &self.client_id
     }
 
+    /// Assign the session to another peer
+    pub async fn bind(&self, peer: Arc<Peer>) {
+        *(self.peer.write().await) = Arc::downgrade(&peer);
+    }
+
     /// Gets the currently bound peer as as owning pointer
-    pub fn peer(&self) -> Option<Arc<Peer>> {
-        self.peer.upgrade()
+    pub async fn peer(&self) -> Option<Arc<Peer>> {
+        self.peer.read().await.upgrade()
     }
 
     /// Gets the subscriptions this session has
