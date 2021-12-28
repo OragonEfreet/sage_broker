@@ -1,4 +1,4 @@
-use crate::{BrokerSettings, CommandSender, Peer, Trigger};
+use crate::{CommandSender, Peer, Trigger};
 use async_std::{future, io::BufReader, net::TcpStream, sync::Arc};
 use log::{debug, error, info};
 use sage_mqtt::{Disconnect, Packet, ReasonCode};
@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 pub async fn listen_peer(
     peer: Peer,
     to_command_channel: CommandSender,
-    settings: Arc<BrokerSettings>,
+    keep_alive: u16,
     stream: Arc<TcpStream>,
     shutdown: Trigger,
 ) {
@@ -24,7 +24,7 @@ pub async fn listen_peer(
     // The keep_alive value is initially given by `settings`.
     // If 0: no keep_alive (no timeout, listener waits forever)
     // If >0: effective keep_alive is 1.5* the one in the settings.
-    let mut keep_alive = match settings.keep_alive {
+    let mut keep_alive = match keep_alive {
         0 => None,
         val => Some((
             Duration::from_secs(((val as f32) * 1.5) as u64),

@@ -7,7 +7,7 @@ use std::cmp::min;
 pub async fn run(broker: Arc<Broker>, connect: Connect, peer: Arc<Peer>) {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
-    let mut connack = acknowledge_connect(broker.settings.clone(), &connect);
+    let mut connack = acknowledge_connect(&broker.settings, &connect);
 
     if connack.reason_code == ReasonCode::Success {
         let client_id = connack
@@ -59,7 +59,7 @@ pub async fn run(broker: Arc<Broker>, connect: Connect, peer: Arc<Peer>) {
     }
 }
 
-fn acknowledge_connect(settings: Arc<BrokerSettings>, connect: &Connect) -> ConnAck {
+fn acknowledge_connect(settings: &BrokerSettings, connect: &Connect) -> ConnAck {
     // If the server forces the value, we use it.
     // Otherwise we take the value from the connect request or
     // the server one if absent.

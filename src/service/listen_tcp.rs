@@ -65,7 +65,7 @@ pub async fn listen_tcp(
 async fn create_peer(
     stream: TcpStream,
     command_sender: CommandSender,
-    settings: &Arc<BrokerSettings>,
+    settings: &BrokerSettings,
     shutdown: Trigger,
 ) -> Option<(JoinHandle<()>, JoinHandle<()>)> {
     match stream.peer_addr() {
@@ -98,7 +98,7 @@ async fn create_peer(
             let listen_task = task::spawn(service::listen_peer(
                 Peer::new(peer_addr, packet_sender),
                 command_sender,
-                settings.clone(),
+                settings.keep_alive,
                 stream,
                 shutdown,
             ));

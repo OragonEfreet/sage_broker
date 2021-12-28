@@ -5,7 +5,7 @@ use async_std::sync::{Arc, RwLock};
 #[derive(Default, Debug, Clone)]
 pub struct Broker {
     /// Settings used for this broker
-    pub settings: Arc<BrokerSettings>,
+    pub settings: BrokerSettings,
 
     /// List of sessions
     pub sessions: Arc<RwLock<Sessions>>,
@@ -18,7 +18,7 @@ impl From<BrokerSettings> for Broker {
     fn from(settings: BrokerSettings) -> Self {
         assert!(settings.is_valid());
         Broker {
-            settings: Arc::new(settings),
+            settings,
             ..Default::default()
         }
     }
