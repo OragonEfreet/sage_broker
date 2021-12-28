@@ -259,10 +259,13 @@ async fn mqtt_3_8_4_3() {
         ..BrokerSettings::valid_default()
     })
     .await;
-    let sessions = broker.sessions.clone();
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
-    let sessions = sessions.read().await;
-    let session = sessions.get(&client_id.unwrap()).unwrap();
+    let session = broker
+        .sessions
+        .read()
+        .await
+        .get(&client_id.unwrap())
+        .unwrap();
 
     // Send twice the same topic sub. Each time check only 1 sub exist within
     // the client
@@ -308,11 +311,14 @@ async fn mqtt_3_8_4_5() {
         ..BrokerSettings::valid_default()
     })
     .await;
-    let sessions = broker.sessions.clone();
 
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
-    let sessions = sessions.read().await;
-    let session = sessions.get(&client_id.unwrap()).unwrap();
+    let session = broker
+        .sessions
+        .read()
+        .await
+        .get(&client_id.unwrap())
+        .unwrap();
 
     let subscribe = Subscribe {
         subscriptions: topics

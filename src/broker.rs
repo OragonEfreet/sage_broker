@@ -2,13 +2,13 @@ use crate::{BrokerSettings, Sessions, Subscriptions};
 use async_std::sync::{Arc, RwLock};
 
 /// The main broker object
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug)]
 pub struct Broker {
     /// Settings used for this broker
     pub settings: BrokerSettings,
 
     /// List of sessions
-    pub sessions: Arc<RwLock<Sessions>>,
+    pub sessions: RwLock<Sessions>,
 
     /// List of subscriptinos
     pub subscriptions: Arc<RwLock<Subscriptions>>,

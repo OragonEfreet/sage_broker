@@ -19,10 +19,7 @@ pub async fn spawn(
 
     let shutdown = Trigger::default();
 
-    let broker = Arc::new(Broker {
-        settings: Arc::new(settings),
-        ..Default::default()
-    });
+    let broker = Arc::new(Broker::from(settings));
 
     let service_task = task::spawn(run_server(listener, broker.clone(), shutdown.clone()));
 
