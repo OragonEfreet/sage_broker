@@ -47,7 +47,7 @@ mqtt_3_8_1_1! {
 async fn mqtt_3_8_1_1(fixed_header: u8, expect_success: bool) {
     // We will send any version of incorrect Fixed Headers and wait for the server's response
     // We will also check for the validity of the unique correct case
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -97,7 +97,7 @@ async fn mqtt_3_8_3_1() {}
 #[async_std::test]
 async fn mqtt_3_8_3_2() {
     // We will send a packet with no Subscription
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -156,7 +156,7 @@ async fn mqtt_3_8_3_5_0011() {
 }
 
 async fn mqtt_3_8_3_5(sub_payload: u8) {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -194,7 +194,7 @@ async fn mqtt_3_8_3_5(sub_payload: u8) {
 /// respond with a SUBACK packet.
 #[async_std::test]
 async fn mqtt_3_8_4_1() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -220,7 +220,7 @@ async fn mqtt_3_8_4_1() {
 #[async_std::test]
 async fn mqtt_3_8_4_2() {
     // We send 100 random packet identifiers and expect the SubAck to return the same each
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -254,7 +254,7 @@ async fn mqtt_3_8_4_2() {
 #[async_std::test]
 async fn mqtt_3_8_4_3() {
     let topic = Topic::from("Topic1");
-    let (sessions, subs, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -276,9 +276,10 @@ async fn mqtt_3_8_4_3() {
         ));
 
         {
-            let subs = subs.read().await;
+            let session = session.read().await;
+            let subs = session.subs().read().await;
             assert_eq!(subs.len(), 1);
-            assert!(subs.has_filter(topic.clone(), session.read().await.client_id()));
+            assert!(subs.has_filter(topic.clone(),));
         }
     }
 
@@ -301,7 +302,7 @@ async fn mqtt_3_8_4_5() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
 
-    let (sessions, subs, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -309,6 +310,7 @@ async fn mqtt_3_8_4_5() {
 
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
     let session = sessions.read().await.get(&client_id.unwrap()).unwrap();
+    let session = session.read().await;
 
     let subscribe = Subscribe {
         subscriptions: topics
@@ -325,11 +327,11 @@ async fn mqtt_3_8_4_5() {
 
     // Check for the existence of the three subscriptions in the session
     {
-        let subs = subs.read().await;
+        let subs = session.subs().read().await;
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter(Topic::from("topic1"), session.read().await.client_id()));
-        assert!(subs.has_filter(Topic::from("topic2"), session.read().await.client_id()));
-        assert!(subs.has_filter(Topic::from("topic3"), session.read().await.client_id()));
+        assert!(subs.has_filter(Topic::from("topic1")));
+        assert!(subs.has_filter(Topic::from("topic2")));
+        assert!(subs.has_filter(Topic::from("topic3")));
     }
 
     // Now resend each separately and make the same checks
@@ -344,11 +346,11 @@ async fn mqtt_3_8_4_5() {
     }
 
     {
-        let subs = subs.read().await;
+        let subs = session.subs().read().await;
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter(Topic::from("topic1"), session.read().await.client_id()));
-        assert!(subs.has_filter(Topic::from("topic2"), session.read().await.client_id()));
-        assert!(subs.has_filter(Topic::from("topic3"), session.read().await.client_id()));
+        assert!(subs.has_filter(Topic::from("topic1")));
+        assert!(subs.has_filter(Topic::from("topic2")));
+        assert!(subs.has_filter(Topic::from("topic3")));
     }
 
     server::stop(shutdown, server).await;
@@ -362,7 +364,7 @@ async fn mqtt_3_8_4_6() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
 
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })

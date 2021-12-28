@@ -1,5 +1,5 @@
-use crate::{BrokerSettings, Peer, Subscriptions};
-use async_std::sync::{Arc, RwLock};
+use crate::{BrokerSettings, Peer};
+use async_std::sync::Arc;
 use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 
 /// Simply returns a ConnAck package
@@ -17,12 +17,7 @@ use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 /// - SharedSubscriptionsNotSupported: The Server does not support Shared Subscriptions for this Client.
 /// + SubscriptionIdentifiersNotSupported: The Server does not support Subscription Identifiers; the subscription is not accepted.
 /// - WildcardSubscriptionsNotSupported: The Server does not support Wildcard Subscriptions; the subscription is not accepted.
-pub async fn run(
-    settings: Arc<BrokerSettings>,
-    subscriptions: Arc<RwLock<Subscriptions>>,
-    packet: Subscribe,
-    peer: Arc<Peer>,
-) {
+pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Peer>) {
     // Take the client if exist, from the peer, and at it a new sub
     if let Some(session) = peer.session().await {
         if packet.subscription_identifier.is_some() {
@@ -61,11 +56,13 @@ pub async fn run(
                     reason_code,
                     ReasonCode::Success | ReasonCode::GrantedQoS1 | ReasonCode::GrantedQoS2
                 ) {
-                    subscriptions.write().await.add(
-                        topic,
-                        session.read().await.client_id(),
-                        options,
-                    );
+                    session
+                        .read()
+                        .await
+                        .subs()
+                        .write()
+                        .await
+                        .add(topic, options);
                 }
             }
             peer.send(suback.into()).await

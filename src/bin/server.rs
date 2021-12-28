@@ -5,7 +5,7 @@ use async_std::{
     task,
 };
 use log::{error, info};
-use sage_broker::{service, BrokerSettings, Sessions, Subscriptions, Trigger};
+use sage_broker::{service, BrokerSettings, Sessions, Trigger};
 
 #[async_std::main]
 async fn main() {
@@ -15,7 +15,6 @@ async fn main() {
 
         let shutdown = Trigger::default();
         let sessions = Arc::new(RwLock::new(Sessions::default()));
-        let subscriptions = Arc::new(RwLock::new(Subscriptions::default()));
 
         // Create the command packet channel and spawn a new
         // task for command packet treatment.
@@ -25,7 +24,6 @@ async fn main() {
         let command_loop = task::spawn(service::command_loop(
             settings.clone(),
             sessions,
-            subscriptions,    // The settings
             command_receiver, // The command receiver to use
             shutdown.clone(), // Shutdown trigger
         ));

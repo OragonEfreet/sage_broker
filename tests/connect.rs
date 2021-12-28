@@ -19,7 +19,7 @@ pub use utils::*;
 /// Session.
 #[async_std::test]
 async fn mqtt_3_1_2_4() {
-    let (sessions, _, server, local_addr, shutdown) =
+    let (sessions, server, local_addr, shutdown) =
         server::spawn(BrokerSettings::valid_default()).await;
 
     let client_id = String::from("Jaden");
@@ -67,7 +67,7 @@ async fn mqtt_3_1_2_4() {
 /// state from the existing Session.
 #[async_std::test]
 async fn mqtt_3_1_2_5() {
-    let (sessions, _, server, local_addr, shutdown) =
+    let (sessions, server, local_addr, shutdown) =
         server::spawn(BrokerSettings::valid_default()).await;
 
     let client_id = String::from("Jaden");
@@ -112,7 +112,7 @@ async fn mqtt_3_1_2_5() {
 /// (implicitely: other sessions exist)
 #[async_std::test]
 async fn mqtt_3_1_2_6() {
-    let (sessions, _, server, local_addr, shutdown) =
+    let (sessions, server, local_addr, shutdown) =
         server::spawn(BrokerSettings::valid_default()).await;
 
     let first_client_id = String::from("Jaden");
@@ -154,7 +154,7 @@ async fn mqtt_3_1_2_6() {
 #[async_std::test]
 async fn connect_timeout() {
     let timeout_delay = 1;
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: timeout_delay,
         ..BrokerSettings::valid_default()
     })
@@ -185,7 +185,7 @@ async fn connect_timeout() {
 /// Cases that would send back a connack packet
 #[async_std::test]
 async fn mqtt_3_1_4_1() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -258,7 +258,7 @@ async fn mqtt_3_1_4_2() {
     ];
 
     for (settings, connect, reason_code) in test_collection {
-        let (_, _, server, local_addr, shutdown) = server::spawn(settings).await;
+        let (_, server, local_addr, shutdown) = server::spawn(settings).await;
         let mut stream = client::spawn(&local_addr).await;
 
         // Send an unsupported connect packet and wait for an immediate disconnection
@@ -281,7 +281,7 @@ async fn mqtt_3_1_4_2() {
 /// the Network Connection of the existing Client [MQTT-3.1.4-3]
 #[async_std::test]
 async fn mqtt_3_1_4_3() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -362,7 +362,7 @@ async fn mqtt_3_1_4_4_connect(
 // packet containing a 0x00 (Success) Reason Code.
 #[async_std::test]
 async fn mqtt_3_1_4_5() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
@@ -391,7 +391,7 @@ async fn mqtt_3_1_4_5() {
 /// NOTE: Currently AUTH packet is not accepted either
 #[async_std::test]
 async fn mqtt_3_1_4_6() {
-    let (_, _, server, local_addr, shutdown) = server::spawn(BrokerSettings {
+    let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
         ..BrokerSettings::valid_default()
     })
