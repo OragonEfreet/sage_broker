@@ -1,4 +1,4 @@
-use crate::{Peer, Subs};
+use crate::{Cache, Peer, Subs};
 use async_std::sync::{Arc, RwLock, Weak};
 use log::info;
 use nanoid::nanoid;
@@ -16,7 +16,7 @@ pub struct Session {
 
 impl Session {
     /// Creates a new session, giving a peer and an id
-    pub fn new(client_id: &str, peer: Arc<Peer>) -> Self {
+    pub fn new(client_id: &str, peer: Arc<Peer>, cache: Arc<Cache>) -> Self {
         let id = format!("session_{}", nanoid!(10));
         info!("New session: Unique ID:{:?}, Client ID:{:?}", id, client_id);
 
@@ -24,7 +24,7 @@ impl Session {
             id,
             client_id: client_id.into(),
             peer: RwLock::new(Arc::downgrade(&peer)),
-            subs: Default::default(),
+            subs: RwLock::new(Subs::new(cache)),
         }
     }
 

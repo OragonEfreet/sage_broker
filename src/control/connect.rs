@@ -1,4 +1,4 @@
-use crate::{BrokerSettings, Peer, Session, Sessions};
+use crate::{BrokerSettings, Cache, Peer, Session, Sessions};
 use async_std::sync::{Arc, RwLock};
 use nanoid::nanoid;
 use sage_mqtt::{ConnAck, Connect, Disconnect, ReasonCode};
@@ -9,6 +9,7 @@ pub async fn run(
     sessions: Arc<RwLock<Sessions>>,
     connect: Connect,
     peer: Arc<Peer>,
+    cache: Arc<Cache>,
 ) {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
@@ -41,7 +42,7 @@ pub async fn run(
 
                 if clean_start {
                     connack.session_present = false;
-                    Arc::new(Session::new(&client_id, peer.clone()))
+                    Arc::new(Session::new(&client_id, peer.clone(), cache))
                 } else {
                     connack.session_present = true;
                     session.bind(peer.clone()).await;
@@ -49,7 +50,7 @@ pub async fn run(
                 }
             } else {
                 connack.session_present = false;
-                Arc::new(Session::new(&client_id, peer.clone()))
+                Arc::new(Session::new(&client_id, peer.clone(), cache))
             }
         };
         sessions.write().await.add(session.clone());

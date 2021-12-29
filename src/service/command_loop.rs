@@ -1,4 +1,4 @@
-use crate::{control, BrokerSettings, CommandReceiver, Sessions, Trigger};
+use crate::{control, BrokerSettings, CommandReceiver, Publisher, Sessions, Trigger};
 use async_std::{
     prelude::*,
     sync::{Arc, RwLock},
@@ -21,6 +21,7 @@ pub async fn command_loop(
     mut from_command_channel: CommandReceiver,
     shutdown: Trigger,
 ) -> CommandReceiver {
+    let publisher = Arc::new(Publisher::default());
     // Validate broker settings against current limitations
     if !settings.is_valid() {
         error!("Shutting down server due to current limitations");
@@ -50,7 +51,14 @@ pub async fn command_loop(
             )
             .await;
         } else {
-            control::run(settings.clone(), sessions.clone(), packet, peer).await;
+            control::run(
+                settings.clone(),
+                sessions.clone(),
+                packet,
+                peer,
+                publisher.clone(),
+            )
+            .await;
         };
     }
     info!("Stop command loop");

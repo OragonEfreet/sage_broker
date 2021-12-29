@@ -1,4 +1,4 @@
-use crate::{BrokerSettings, Peer, Sessions};
+use crate::{BrokerSettings, Peer, Publisher, Sessions};
 use async_std::sync::{Arc, RwLock};
 use log::error;
 use sage_mqtt::{ConnAck, Packet, PingResp, ReasonCode};
@@ -11,11 +11,14 @@ pub async fn run(
     sessions: Arc<RwLock<Sessions>>,
     packet: Packet,
     peer: Arc<Peer>,
+    publisher: Arc<Publisher>,
 ) {
     match packet {
         Packet::Subscribe(packet) => subscribe::run(settings, packet, peer).await,
         Packet::PingReq => peer.send(PingResp.into()).await,
-        Packet::Connect(packet) => connect::run(settings, sessions, packet, peer).await,
+        Packet::Connect(packet) => {
+            connect::run(settings, sessions, packet, peer, publisher.cache().clone()).await
+        }
         _ => {
             error!("Unsupported packet: {:#?}", packet);
             peer.send_close(

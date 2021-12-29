@@ -1,13 +1,24 @@
+use crate::Cache;
+use async_std::sync::Arc;
 use sage_mqtt::{SubscriptionOptions, Topic};
 use std::collections::HashMap;
 
 /// The list of all subcriptions registered by the broker
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Subs {
     db: HashMap<Topic, (SubscriptionOptions, Option<u32>)>,
+    cache: Arc<Cache>,
 }
 
 impl Subs {
+    /// Builds a new Subscription DB with the given cache
+    pub fn new(cache: Arc<Cache>) -> Self {
+        Subs {
+            db: Default::default(),
+            cache,
+        }
+    }
+
     /// The number of subscriptions
     pub fn len(&self) -> usize {
         self.db.len()
@@ -21,6 +32,7 @@ impl Subs {
         options: SubscriptionOptions,
         identifier: Option<u32>,
     ) -> bool {
+        self.cache.clear();
         self.db.insert(topic, (options, identifier)).is_some()
     }
 
