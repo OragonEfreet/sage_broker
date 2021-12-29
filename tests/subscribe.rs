@@ -278,7 +278,7 @@ async fn mqtt_3_8_4_3() {
         {
             let subs = session.subs().read().await;
             assert_eq!(subs.len(), 1);
-            assert!(subs.has_filter(topic.clone(),));
+            assert!(subs.has_filter(&topic,));
         }
     }
 
@@ -327,9 +327,9 @@ async fn mqtt_3_8_4_5() {
     {
         let subs = session.subs().read().await;
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter(Topic::from("topic1")));
-        assert!(subs.has_filter(Topic::from("topic2")));
-        assert!(subs.has_filter(Topic::from("topic3")));
+        assert!(subs.has_filter(&Topic::from("topic1")));
+        assert!(subs.has_filter(&Topic::from("topic2")));
+        assert!(subs.has_filter(&Topic::from("topic3")));
     }
 
     // Now resend each separately and make the same checks
@@ -346,9 +346,9 @@ async fn mqtt_3_8_4_5() {
     {
         let subs = session.subs().read().await;
         assert_eq!(subs.len(), 3);
-        assert!(subs.has_filter(Topic::from("topic1")));
-        assert!(subs.has_filter(Topic::from("topic2")));
-        assert!(subs.has_filter(Topic::from("topic3")));
+        assert!(subs.has_filter(&Topic::from("topic1")));
+        assert!(subs.has_filter(&Topic::from("topic2")));
+        assert!(subs.has_filter(&Topic::from("topic3")));
     }
 
     server::stop(shutdown, server).await;

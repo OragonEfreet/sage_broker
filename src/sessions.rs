@@ -39,4 +39,23 @@ impl Sessions {
     pub fn add(&mut self, session: Arc<Session>) {
         self.db.push(session);
     }
+
+    /// Returns an iterator over sessions
+    pub fn iter(&self) -> SessionsIterator {
+        SessionsIterator {
+            inner_it: self.db.iter(),
+        }
+    }
+}
+
+pub struct SessionsIterator<'a> {
+    inner_it: std::slice::Iter<'a, Arc<Session>>,
+}
+
+impl<'a> Iterator for SessionsIterator<'a> {
+    type Item = &'a Arc<Session>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner_it.next()
+    }
 }

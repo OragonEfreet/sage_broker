@@ -4,6 +4,7 @@ use log::error;
 use sage_mqtt::{ConnAck, Packet, PingResp, ReasonCode};
 
 mod connect;
+mod publish;
 mod subscribe;
 
 pub async fn run(
@@ -19,6 +20,7 @@ pub async fn run(
         Packet::Connect(packet) => {
             connect::run(settings, sessions, packet, peer, publisher.cache().clone()).await
         }
+        Packet::Publish(packet) => publish::run(packet, sessions).await,
         _ => {
             error!("Unsupported packet: {:#?}", packet);
             peer.send_close(

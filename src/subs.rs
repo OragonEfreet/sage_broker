@@ -37,7 +37,12 @@ impl Subs {
     }
 
     /// Check wether the given session is subscribed to the given filter
-    pub fn has_filter(&self, topic: Topic) -> bool {
-        self.db.contains_key(&topic)
+    pub fn has_filter(&self, topic: &Topic) -> bool {
+        self.db.contains_key(topic)
+    }
+
+    /// Check wether the given topic name matches any filter within this subs
+    pub fn matches(&self, name: &Topic) -> bool {
+        self.has_filter(name)
     }
 }
