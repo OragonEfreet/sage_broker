@@ -33,6 +33,7 @@ impl Subs {
         identifier: Option<u32>,
     ) -> bool {
         self.cache.clear();
+        log::warn!("Subscription Identifier: {:?}", identifier);
         self.db.insert(topic, (options, identifier)).is_some()
     }
 

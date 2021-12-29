@@ -15,11 +15,8 @@ pub async fn run(publish: Publish, sessions: Arc<RwLock<Sessions>>) {
         .iter()
         .filter(|&session| task::block_on(session.subs().read()).matches(&publish.topic_name))
     {
-        dbg!(session);
-        // if session.subs().read().await.matches(&publish.topic_name) {
-        //     println!("Matches");
-        // } else {
-        //     log::error!("Bo-hou");
-        // }
+        if let Some(peer) = session.peer().await {
+            peer.send(Publish { ..publish.clone() }.into()).await;
+        }
     }
 }
