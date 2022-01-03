@@ -1,6 +1,6 @@
 use crate::{BrokerSettings, Peer};
-use async_std::sync::Arc;
 use sage_mqtt::{ReasonCode, SubAck, Subscribe};
+use std::sync::Arc;
 
 /// Simply returns a ConnAck package
 /// With the correct packet identifier
@@ -19,7 +19,7 @@ use sage_mqtt::{ReasonCode, SubAck, Subscribe};
 /// - WildcardSubscriptionsNotSupported: The Server does not support Wildcard Subscriptions; the subscription is not accepted.
 pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Peer>) {
     // Take the client if exist, from the peer, and at it a new sub
-    if let Some(session) = peer.session().await {
+    if let Some(session) = peer.session() {
         let mut suback = SubAck {
             packet_identifier: packet.packet_identifier,
             ..Default::default()
@@ -45,11 +45,11 @@ pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Pee
                 session
                     .subs()
                     .write()
-                    .await
+                    .unwrap()
                     .add(topic, options, packet.subscription_identifier);
             }
         }
-        peer.send(suback.into()).await
+        peer.send(suback.into())
     } else {
         // If not session present, close the peer.
         // Send an UnspecifiedError error for each topic
@@ -61,6 +61,5 @@ pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Pee
             }
             .into(),
         )
-        .await
     }
 }

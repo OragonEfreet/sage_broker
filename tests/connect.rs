@@ -1,9 +1,7 @@
 //! CONNECT Actions requirements consists in all [MQTT 3.1.4-x] conformances.
 //! It also describes some elements from [MQTT 3.1.2-x].
-use async_std::{
-    net::{SocketAddr, TcpStream},
-    task,
-};
+use std::net::SocketAddr;
+use tokio::{net::TcpStream, task};
 
 use sage_broker::BrokerSettings;
 use sage_mqtt::{Connect, Packet, ReasonCode};
@@ -17,7 +15,7 @@ pub use utils::*;
 /// MQTT-3.1.2-4: If a CONNECT packet is received with Clean Start is set to 1,
 /// the Client and Server MUST discard any existing Session and start a new
 /// Session.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_2_4() {
     let (sessions, server, local_addr, shutdown) =
         server::spawn(BrokerSettings::valid_default()).await;
@@ -29,7 +27,7 @@ async fn mqtt_3_1_2_4() {
 
     // Some checks on the state of the current database
     let session_id = {
-        let sessions = sessions.read().await;
+        let sessions = sessions.read().unwrap();
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&client_id).unwrap();
         assert_eq!(session.client_id(), client_id);
@@ -48,7 +46,7 @@ async fn mqtt_3_1_2_4() {
         panic!("{}", what);
     }
 
-    let sessions = sessions.read().await;
+    let sessions = sessions.read().unwrap();
     assert_eq!(sessions.len(), 1); // We have 1 client exactly
     let session = sessions.get(&client_id).unwrap();
 
@@ -63,7 +61,7 @@ async fn mqtt_3_1_2_4() {
 /// MQTT-3.1.2-5: If a CONNECT packet is received with Clean Start set to 0 and there is a Session associated
 /// with the Client Identifier, the Server MUST resume communications with the Client based on
 /// state from the existing Session.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_2_5() {
     let (sessions, server, local_addr, shutdown) =
         server::spawn(BrokerSettings::valid_default()).await;
@@ -75,7 +73,7 @@ async fn mqtt_3_1_2_5() {
 
     let session_id = {
         // Search db for the current connexion
-        let sessions = sessions.read().await;
+        let sessions = sessions.read().unwrap();
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&client_id).unwrap();
         assert_eq!(session.client_id(), client_id);
@@ -91,7 +89,7 @@ async fn mqtt_3_1_2_5() {
         panic!("{}", what);
     }
 
-    let sessions = sessions.read().await;
+    let sessions = sessions.read().unwrap();
     assert_eq!(sessions.len(), 1); // Because previous session was taken over
     let session = sessions.get(&client_id).unwrap();
 
@@ -106,7 +104,7 @@ async fn mqtt_3_1_2_5() {
 /// MQTT-3.1.2-6: If a CONNECT packet is received with Clean Start set to 0 and there is no Session associated
 /// with the Client Identifier, the Server MUST create a new Session.
 /// (implicitely: other sessions exist)
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_2_6() {
     let (sessions, server, local_addr, shutdown) =
         server::spawn(BrokerSettings::valid_default()).await;
@@ -119,7 +117,7 @@ async fn mqtt_3_1_2_6() {
 
     let session_id = {
         // Search db for the current connexion
-        let sessions = sessions.read().await;
+        let sessions = sessions.read().unwrap();
         assert_eq!(sessions.len(), 1); // We have 1 client exactly
         let session = sessions.get(&first_client_id).unwrap();
         assert_eq!(session.client_id(), first_client_id);
@@ -129,7 +127,7 @@ async fn mqtt_3_1_2_6() {
     // Let's do the same, forcing clean start to 0
     mqtt_3_1_4_4_connect(&second_client_id, &local_addr, Some(false)).await;
 
-    let sessions = sessions.read().await;
+    let sessions = sessions.read().unwrap();
     assert_eq!(sessions.len(), 2); // We have 2 client exactly
     let session = sessions.get(&second_client_id).unwrap();
 
@@ -145,7 +143,7 @@ async fn mqtt_3_1_2_6() {
 /// If the Server does not receive a CONNECT packet within a reasonable amount
 /// of time after the Network Connection is established
 /// the Server SHOULD close the Network Connection.
-#[async_std::test]
+#[tokio::test]
 async fn connect_timeout() {
     let timeout_delay = 1;
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -177,7 +175,7 @@ async fn connect_timeout() {
 /// not match.
 /// NOTE we may want to add new invalidate scenarios here.
 /// Cases that would send back a connack packet
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_4_1() {
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
@@ -219,7 +217,7 @@ async fn mqtt_3_1_4_1() {
 /// Before closing the Network Connection, it MAY send an appropriate CONNACK
 /// response with a Reason Code of 0x80 or greater as described in section 3.2
 /// and section 4.13.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_4_2() {
     // Create a set of pairs with a server and an unsupported connect packet.
     // Each one will be tested against an expected ConnAck > 0x80
@@ -273,7 +271,7 @@ async fn mqtt_3_1_4_2() {
 /// Server sends a DISCONNECT packet to the existing Client with Reason Code
 /// of 0x8E (Session taken over) as described in section 4.13 and MUST close
 /// the Network Connection of the existing Client [MQTT-3.1.4-3]
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_4_3() {
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
@@ -303,7 +301,7 @@ async fn mqtt_3_1_4_3() {
 
     // wait for receiving the Disconnect packet
     // If None, the operation was successful.
-    if let Some(message) = wait_dis.await {
+    if let Some(message) = wait_dis.await.unwrap() {
         panic!("{}", message);
     }
 
@@ -354,7 +352,7 @@ async fn mqtt_3_1_4_4_connect(
 ///////////////////////////////////////////////////////////////////////////////
 // MQTT-3.1.4-5: The Server MUST acknowledge the CONNECT packet with a CONNACK
 // packet containing a 0x00 (Success) Reason Code.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_4_5() {
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
@@ -383,7 +381,7 @@ async fn mqtt_3_1_4_5() {
 /// MQTT-3.1.4-6: If the Server rejects the CONNECT, it MUST NOT process any
 /// data sent by the Client after the CONNECT packet except AUTH packets.
 /// NOTE: Currently AUTH packet is not accepted either
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_1_4_6() {
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,

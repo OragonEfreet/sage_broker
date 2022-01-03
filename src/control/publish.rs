@@ -1,9 +1,6 @@
 use crate::Sessions;
-use async_std::{
-    sync::{Arc, RwLock},
-    task,
-};
 use sage_mqtt::Publish;
+use std::sync::{Arc, RwLock};
 
 pub async fn run(publish: Publish, sessions: Arc<RwLock<Sessions>>) {
     // For now we'll apply the naive way.
@@ -11,12 +8,12 @@ pub async fn run(publish: Publish, sessions: Arc<RwLock<Sessions>>) {
     // a publish message
     for session in sessions
         .read()
-        .await
+        .unwrap()
         .iter()
-        .filter(|&session| task::block_on(session.subs().read()).matches(&publish.topic_name))
+        .filter(|&session| session.subs().read().unwrap().matches(&publish.topic_name))
     {
-        if let Some(peer) = session.peer().await {
-            peer.send(Publish { ..publish.clone() }.into()).await;
+        if let Some(peer) = session.peer() {
+            peer.send(Publish { ..publish.clone() }.into());
         }
     }
 }

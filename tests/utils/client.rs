@@ -1,11 +1,7 @@
 use crate::utils::TIMEOUT_DELAY;
-use async_std::{
-    io::{self, prelude::*, Cursor, ErrorKind},
-    net::{SocketAddr, TcpStream},
-    task,
-};
 use sage_mqtt::{Connect, Packet, ReasonCode};
-use std::time::Duration;
+use std::{io::Cursor, net::SocketAddr, time::Duration};
+use tokio::{io::AsyncReadExt, io::AsyncWriteExt, net::TcpStream, time};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Create a valid TcpStream client for the current server
@@ -17,7 +13,7 @@ pub async fn spawn(local_addr: &SocketAddr) -> TcpStream {
             return stream;
         }
 
-        task::sleep(Duration::from_secs(1)).await;
+        time::sleep(Duration::from_secs(1)).await;
     }
 
     panic!("Cannot spawn client after 5 attempts");
@@ -59,16 +55,17 @@ pub async fn send_waitback_data(stream: &mut TcpStream, buffer: Vec<u8>) -> Resp
 
     let delay_with_tolerance = Duration::from_secs((TIMEOUT_DELAY as f32 * 1.5) as u64);
     let mut buf = vec![0u8; 1024];
-    match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
-        Err(e) => match e.kind() {
-            ErrorKind::TimedOut => Response::None,
-            _ => panic!("IO Error: {:?}", e),
-        },
-        Ok(0) => Response::Close,
-        Ok(_) => {
-            let mut buf = Cursor::new(buf);
-            Response::Packet(Packet::decode(&mut buf).await.unwrap())
+
+    // Result<Result<usize, std::io::Error>, Elapsed>
+
+    if let Ok(response) = time::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
+        match response {
+            Err(e) => panic!("IO Error: {:?}", e),
+            Ok(0) => Response::Close,
+            Ok(_) => Response::Packet(Packet::decode(&mut Cursor::new(buf)).await.unwrap()),
         }
+    } else {
+        Response::None
     }
 }
 
@@ -107,60 +104,67 @@ pub async fn wait_close(mut stream: TcpStream, disconnect: DisPacket) -> Option<
     let delay_with_tolerance = Duration::from_secs(TIMEOUT_DELAY as u64);
     let mut buf = vec![0u8; 1024];
 
-    match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
-        Err(e) => match e.kind() {
-            ErrorKind::TimedOut => Some("Server did not respond".to_string()),
-            _ => Some("IO Error".to_string()),
-        },
-        Ok(0) => {
-            // Connexion shutdown with no disconnect
-            match disconnect {
-                DisPacket::Ignore(_) | DisPacket::Forbid => None,
-                DisPacket::Force(_) => Some("DISCONNECT packet expected before close".to_string()),
+    if let Ok(response) = time::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
+        match response {
+            Err(_) => Some("IO Error".to_string()),
+            Ok(0) => {
+                // Connexion shutdown with no disconnect
+                match disconnect {
+                    DisPacket::Ignore(_) | DisPacket::Forbid => None,
+                    DisPacket::Force(_) => {
+                        Some("DISCONNECT packet expected before close".to_string())
+                    }
+                }
             }
-        }
-        Ok(_) => {
-            // DISCONNECT packet sent before shut down
-            if let DisPacket::Forbid = disconnect {
-                Some("Server should have closed with no prior packet".to_string())
-            } else {
-                // disconnect can only be Ignore of Force(_) here.
-                // In both cases, the optionally received packet MUST be a DISCONNECT
-                let mut buf = Cursor::new(buf);
-                let packet = Packet::decode(&mut buf).await.unwrap();
-                if let Packet::Disconnect(packet) = packet {
-                    match disconnect {
-                        DisPacket::Force(Some(rc)) | DisPacket::Ignore(Some(rc))
-                            if rc != packet.reason_code =>
-                        {
-                            Some(format!(
-                                "Expected reason code '{:?}', got '{:?}'",
-                                rc, packet.reason_code
-                            ))
-                        }
-                        _ => {
-                            let mut buf = vec![0u8; 1024];
-                            // Here the server MUST close the connection.
-                            // Thus we only expect a Ok(0)
-                            match io::timeout(delay_with_tolerance, stream.read(&mut buf)).await {
-                                Err(e) => match e.kind() {
-                                    ErrorKind::TimedOut => Some(
+            Ok(_) => {
+                // DISCONNECT packet sent before shut down
+                if let DisPacket::Forbid = disconnect {
+                    Some("Server should have closed with no prior packet".to_string())
+                } else {
+                    // disconnect can only be Ignore of Force(_) here.
+                    // In both cases, the optionally received packet MUST be a DISCONNECT
+                    let mut buf = Cursor::new(buf);
+                    let packet = Packet::decode(&mut buf).await.unwrap();
+                    if let Packet::Disconnect(packet) = packet {
+                        match disconnect {
+                            DisPacket::Force(Some(rc)) | DisPacket::Ignore(Some(rc))
+                                if rc != packet.reason_code =>
+                            {
+                                Some(format!(
+                                    "Expected reason code '{:?}', got '{:?}'",
+                                    rc, packet.reason_code
+                                ))
+                            }
+                            _ => {
+                                let mut buf = vec![0u8; 1024];
+                                // Here the server MUST close the connection.
+                                // Thus we only expect a Ok(0)
+
+                                if let Ok(result) =
+                                    time::timeout(delay_with_tolerance, stream.read(&mut buf)).await
+                                {
+                                    match result {
+                                        Err(_) => Some("IO Error".to_string()),
+                                        Ok(0) => None,
+                                        Ok(_) => Some(
+                                            "Unexpected packet send instead of close".to_string(),
+                                        ),
+                                    }
+                                } else {
+                                    Some(
                                         "Server did not respond after DISCONNECT packet"
                                             .to_string(),
-                                    ),
-                                    _ => Some("IO Error".to_string()),
-                                },
-                                Ok(0) => None,
-                                Ok(_) => {
-                                    Some("Unexpected packet send instead of close".to_string())
+                                    )
                                 }
                             }
                         }
+                    } else {
+                        Some("Only DISCONNECT packet is allowed before closing".to_string())
                     }
-                } else {
-                    Some("Only DISCONNECT packet is allowed before closing".to_string())
                 }
             }
         }
+    } else {
+        Some("Server did not respond".to_string())
     }
 }

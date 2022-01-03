@@ -1,10 +1,10 @@
 use crate::{PacketSender, Session, Trigger};
-use async_std::{
+use log::error;
+use sage_mqtt::Packet;
+use std::{
     net::SocketAddr,
     sync::{Arc, RwLock, Weak},
 };
-use log::error;
-use sage_mqtt::Packet;
 
 #[derive(Debug)]
 pub struct Peer {
@@ -28,29 +28,38 @@ impl Peer {
         &self.addr
     }
 
-    pub async fn bind(&self, session: Arc<Session>) {
-        *(self.session.write().await) = Arc::downgrade(&session);
+    pub fn bind(&self, new_session: Arc<Session>) {
+        if let Ok(mut session) = self.session.write() {
+            *session = Arc::downgrade(&new_session);
+        } else {
+            log::error!("Cannot write-lock session");
+        }
     }
 
-    pub async fn session(&self) -> Option<Arc<Session>> {
-        self.session.read().await.upgrade()
+    pub fn session(&self) -> Option<Arc<Session>> {
+        if let Ok(session) = self.session.read() {
+            session.upgrade()
+        } else {
+            log::error!("Cannot read-lock session");
+            None
+        }
     }
 
-    pub async fn closing(&self) -> bool {
-        self.closing.is_fired().await
+    pub fn closing(&self) -> bool {
+        self.closing.is_fired()
     }
 
-    pub async fn close(&self) {
-        self.closing.fire().await;
+    pub fn close(&self) {
+        self.closing.fire();
     }
 
-    pub async fn send_close(&self, packet: Packet) {
-        self.send(packet).await;
-        self.close().await;
+    pub fn send_close(&self, packet: Packet) {
+        self.send(packet);
+        self.close();
     }
 
-    pub async fn send(&self, packet: Packet) {
-        if let Err(e) = self.packet_sender.send(packet).await {
+    pub fn send(&self, packet: Packet) {
+        if let Err(e) = self.packet_sender.send(packet) {
             error!("Cannot send packet to channel: {:?}", e);
         }
     }

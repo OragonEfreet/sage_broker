@@ -8,7 +8,7 @@ use utils::*;
 
 /// The Server MUST send a PINGRESP packet in response to a PINGREQ packet
 /// [MQTT-3.12.4-1].
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_12_4_1() {
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         ..BrokerSettings::valid_default()

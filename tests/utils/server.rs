@@ -1,10 +1,13 @@
-use async_std::{
-    channel,
-    net::{SocketAddr, TcpListener},
+use sage_broker::{service, BrokerSettings, CommandReceiver, Sessions, Trigger};
+use std::{
+    net::SocketAddr,
     sync::{Arc, RwLock},
+};
+use tokio::{
+    net::TcpListener,
+    sync::mpsc,
     task::{self, JoinHandle},
 };
-use sage_broker::{service, BrokerSettings, CommandReceiver, Sessions, Trigger};
 
 pub async fn spawn(
     settings: BrokerSettings,
@@ -32,8 +35,8 @@ pub async fn spawn(
 }
 
 pub async fn stop(trigger: Trigger, service: JoinHandle<CommandReceiver>) -> CommandReceiver {
-    trigger.fire().await;
-    service.await
+    trigger.fire();
+    service.await.unwrap()
 }
 
 async fn run_server(
@@ -42,7 +45,7 @@ async fn run_server(
     sessions: Arc<RwLock<Sessions>>,
     shutdown: Trigger,
 ) -> CommandReceiver {
-    let (command_sender, command_receiver) = channel::unbounded();
+    let (command_sender, command_receiver) = mpsc::unbounded_channel();
     let command_loop = task::spawn(service::command_loop(
         settings.clone(),
         sessions,
@@ -50,5 +53,5 @@ async fn run_server(
         shutdown.clone(),
     ));
     service::listen_tcp(listener, command_sender, settings, shutdown).await;
-    command_loop.await
+    command_loop.await.unwrap()
 }

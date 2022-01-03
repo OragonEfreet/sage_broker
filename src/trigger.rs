@@ -1,4 +1,4 @@
-use async_std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock};
 
 /// The Tigger class represents a one-way shared boolean. It has the following
 /// features:
@@ -13,13 +13,13 @@ pub struct Trigger {
 
 impl Trigger {
     /// Sets the value to `true`
-    pub async fn fire(&self) {
-        *(self.flag.write().await) = true;
+    pub fn fire(&self) {
+        *(self.flag.write().unwrap()) = true;
     }
 
     /// Returns the current value of the trigger
-    pub async fn is_fired(&self) -> bool {
-        *(self.flag.read().await)
+    pub fn is_fired(&self) -> bool {
+        *(self.flag.read().unwrap())
     }
 }
 
@@ -28,31 +28,31 @@ mod unit {
 
     use super::*;
 
-    #[async_std::test]
-    async fn default_is_false() {
+    #[test]
+    fn default_is_false() {
         let trigger = Trigger::default();
-        assert!(!*trigger.flag.read().await);
+        assert!(!*trigger.flag.read().unwrap());
     }
 
-    #[async_std::test]
-    async fn fire_value_is_true() {
+    #[test]
+    fn fire_value_is_true() {
         let trigger = Trigger::default();
-        trigger.fire().await;
-        assert!(*trigger.flag.read().await);
+        trigger.fire();
+        assert!(*trigger.flag.read().unwrap());
     }
 
-    #[async_std::test]
-    async fn value_can_be_queried() {
+    #[test]
+    fn value_can_be_queried() {
         let trigger = Trigger::default();
-        assert_eq!(*trigger.flag.read().await, trigger.is_fired().await);
+        assert_eq!(*trigger.flag.read().unwrap(), trigger.is_fired());
     }
 
-    #[async_std::test]
-    async fn content_is_shared_between_clones() {
+    #[test]
+    fn content_is_shared_between_clones() {
         let trigger_a = Trigger::default();
         let trigger_b = trigger_a.clone();
-        assert_eq!(trigger_a.is_fired().await, trigger_b.is_fired().await);
-        trigger_a.fire().await;
-        assert_eq!(trigger_a.is_fired().await, trigger_b.is_fired().await);
+        assert_eq!(trigger_a.is_fired(), trigger_b.is_fired());
+        trigger_a.fire();
+        assert_eq!(trigger_a.is_fired(), trigger_b.is_fired());
     }
 }

@@ -1,8 +1,11 @@
 use crate::{CommandSender, Peer, Trigger};
-use async_std::{future, io::BufReader, net::TcpStream, sync::Arc};
 use log::{debug, error, info};
 use sage_mqtt::{Disconnect, Packet, ReasonCode};
-use std::time::{Duration, Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tokio::{io::BufReader, net::tcp::OwnedReadHalf, time};
 
 /// The listen peer task is responsible for listening any incoming packet from a specific peer
 /// and convert it to a MQTT packet. Once converted, it sends it into the commands channel.
@@ -16,7 +19,7 @@ pub async fn listen_peer(
     peer: Peer,
     to_command_channel: CommandSender,
     keep_alive: u16,
-    stream: Arc<TcpStream>,
+    stream: OwnedReadHalf,
     shutdown: Trigger,
 ) {
     let peer = Arc::new(peer);
@@ -33,37 +36,36 @@ pub async fn listen_peer(
     };
     let timeout_delay = Duration::from_secs(1_u64);
 
-    let mut stream = BufReader::new(&*stream);
-    while !peer.closing().await {
+    let mut stream = BufReader::new(stream);
+    while !peer.closing() {
         if let Some((max, last)) = keep_alive {
             debug!("KeepAlive: {:?}/{:?}", last.elapsed(), max);
         }
         // If the server is closing, we close the peer too and break
-        if shutdown.is_fired().await {
+        if shutdown.is_fired() {
             let packet = Disconnect {
                 reason_code: ReasonCode::ServerShuttingDown,
                 ..Default::default()
             };
-            peer.send_close(packet.into()).await;
+            peer.send_close(packet.into());
             break;
         }
 
-        // future::timeout returns a Result<T, TimeoutError>
         // T is a Result<Packet, Error>
-        if let Ok(decoded) = future::timeout(timeout_delay, Packet::decode(&mut stream)).await {
+        if let Ok(decoded) = time::timeout(timeout_delay, Packet::decode(&mut stream)).await {
             // At this point, decoded may be an `Err(Io(Kind(UnexpectedEof)))`
             // But it's only considered an error if the peer was not is close state.
 
             // If the connexion has been closed by some other task, we just
             // quit from here.
-            if peer.closing().await {
+            if peer.closing() {
                 break;
             }
 
             match decoded {
                 // If the result is a packet, we create a packet command
                 Ok(packet) => {
-                    if let Err(e) = to_command_channel.send((peer.clone(), packet)).await {
+                    if let Err(e) = to_command_channel.send((peer.clone(), packet)) {
                         error!("Cannot send command: {:?}", e);
                     }
                 }
@@ -72,14 +74,14 @@ pub async fn listen_peer(
                 Err(e) => {
                     error!("Decode Error: {:?}", e);
 
-                    if peer.session().await.is_some() {
+                    if peer.session().is_some() {
                         let packet = Disconnect {
                             reason_code: e.into(),
                             ..Default::default()
                         };
-                        peer.send_close(packet.into()).await;
+                        peer.send_close(packet.into());
                     } else {
-                        peer.close().await;
+                        peer.close();
                     }
                 }
             }
@@ -94,12 +96,12 @@ pub async fn listen_peer(
                 info!("Peer timout, send Disconnect");
                 // If the peer is not in a closing state we can send a Disconnect
                 // packet with KeepAliveTimeout reason code
-                if !peer.closing().await {
+                if !peer.closing() {
                     let packet = Disconnect {
                         reason_code: ReasonCode::KeepAliveTimeout,
                         ..Default::default()
                     };
-                    peer.send_close(packet.into()).await;
+                    peer.send_close(packet.into());
                 }
             }
         }

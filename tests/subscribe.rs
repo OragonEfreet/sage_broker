@@ -14,7 +14,7 @@ macro_rules! mqtt_3_8_1_1 {
     ($($name:ident: $value:expr,)*) => {
         $(
 
-                #[async_std::test]
+                #[tokio::test]
                 async fn $name() {
                     let (fixed_header, expect_success) = $value;
                     mqtt_3_8_1_1(fixed_header, expect_success).await
@@ -88,13 +88,13 @@ async fn mqtt_3_8_1_1(fixed_header: u8, expect_success: bool) {
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.3-1: The Topic Filters MUST be a UTF-8 Encoded String.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_1() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.3-2: The Payload MUST contain at least one Topic Filter and Subscription Options pair.
 /// A SUBSCRIBE packet with no Payload is a Protocol Error
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_2() {
     // We will send a packet with no Subscription
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -129,28 +129,28 @@ async fn mqtt_3_8_3_2() {
 /// MQTT-3.8.3-3: Bit 2 of the Subscription Options represents the No Local option. If the value is
 /// 1, Application Messages MUST NOT be forwarded to a connection with a ClientID equal to the
 /// ClientID of the publishing connection.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_3() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.3-4: It is a Protocol Error to set the No Local bit to 1 on a Shared Subscription.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_4() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.3-5: The Server MUST treat a SUBSCRIBE packet as malformed if any of Reserved bits in
 /// the Payload are non-zero.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_5_0001() {
     mqtt_3_8_3_5(0b0100_0000).await
 }
 
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_5_0010() {
     mqtt_3_8_3_5(0b1000_0000).await
 }
 
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_3_5_0011() {
     mqtt_3_8_3_5(0b1100_0000).await
 }
@@ -192,7 +192,7 @@ async fn mqtt_3_8_3_5(sub_payload: u8) {
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-1: When the Server receives a SUBSCRIBE packet from a Client, the Server MUST
 /// respond with a SUBACK packet.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_1() {
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
         keep_alive: TIMEOUT_DELAY,
@@ -217,7 +217,7 @@ async fn mqtt_3_8_4_1() {
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-2: The SUBACK packet MUST have the same Packet Identifier as the SUBSCRIBE packet
 /// that it is acknowledging.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_2() {
     // We send 100 random packet identifiers and expect the SubAck to return the same each
     let (_, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -251,7 +251,7 @@ async fn mqtt_3_8_4_2() {
 /// MQTT-3.8.4-3: If a Server receives a SUBSCRIBE packet containing a Topic Filter that is
 /// identical to a Non‑shared Subscription’s Topic Filter for the current Session then it MUST
 /// replace that existing Subscription with a new Subscription.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_3() {
     let topic = Topic::from("Topic1");
     let (sessions, server, local_addr, shutdown) = server::spawn(BrokerSettings {
@@ -260,7 +260,7 @@ async fn mqtt_3_8_4_3() {
     })
     .await;
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
-    let session = sessions.read().await.get(&client_id.unwrap()).unwrap();
+    let session = sessions.read().unwrap().get(&client_id.unwrap()).unwrap();
 
     // Send twice the same topic sub. Each time check only 1 sub exist within
     // the client
@@ -276,7 +276,7 @@ async fn mqtt_3_8_4_3() {
         ));
 
         {
-            let subs = session.subs().read().await;
+            let subs = session.subs().read().unwrap();
             assert_eq!(subs.len(), 1);
             assert!(subs.has_filter(&topic,));
         }
@@ -289,14 +289,14 @@ async fn mqtt_3_8_4_3() {
 /// MQTT-3.8.4-4: If the Retain Handling option is 0, any existing retained messages matching the
 /// Topic Filter MUST be re-sent, but Application Messages MUST NOT be lost due to replacing the
 /// Subscription.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_4() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-5: If a Server receives a SUBSCRIBE packet that contains multiple Topic Filters it
 /// MUST handle that packet as if it had received a sequence of multiple SUBSCRIBE packets, except
 /// that it combines their responses into a single SUBACK response.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_5() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
@@ -308,7 +308,7 @@ async fn mqtt_3_8_4_5() {
     .await;
 
     let (mut stream, client_id) = client::connect(&local_addr, Default::default()).await;
-    let session = sessions.read().await.get(&client_id.unwrap()).unwrap();
+    let session = sessions.read().unwrap().get(&client_id.unwrap()).unwrap();
 
     let subscribe = Subscribe {
         subscriptions: topics
@@ -325,7 +325,7 @@ async fn mqtt_3_8_4_5() {
 
     // Check for the existence of the three subscriptions in the session
     {
-        let subs = session.subs().read().await;
+        let subs = session.subs().read().unwrap();
         assert_eq!(subs.len(), 3);
         assert!(subs.has_filter(&Topic::from("topic1")));
         assert!(subs.has_filter(&Topic::from("topic2")));
@@ -344,7 +344,7 @@ async fn mqtt_3_8_4_5() {
     }
 
     {
-        let subs = session.subs().read().await;
+        let subs = session.subs().read().unwrap();
         assert_eq!(subs.len(), 3);
         assert!(subs.has_filter(&Topic::from("topic1")));
         assert!(subs.has_filter(&Topic::from("topic2")));
@@ -357,7 +357,7 @@ async fn mqtt_3_8_4_5() {
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-6: The SUBACK packet sent by the Server to the Client MUST contain a Reason Code for
 /// each Topic Filter/Subscription Option pair.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_6() {
     // Send a sub with three topics
     let topics = vec!["topic1", "topic2", "topic3"];
@@ -389,12 +389,12 @@ async fn mqtt_3_8_4_6() {
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-7: This Reason Code MUST either show the maximum QoS that was granted for that
 /// Subscription or indicate that the subscription failed.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_7() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// MQTT-3.8.4-8: The QoS of Payload Messages sent in response to a Subscription MUST be the
 /// minimum of the QoS of the originally published message and the Maximum QoS granted by the
 /// Server.
-#[async_std::test]
+#[tokio::test]
 async fn mqtt_3_8_4_8() {}

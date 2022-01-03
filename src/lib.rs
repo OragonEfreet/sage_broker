@@ -3,7 +3,8 @@
 // #![warn(missing_doc_code_examples)]
 #![allow(clippy::large_enum_variant)]
 
-use async_std::{channel, sync::Arc};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 mod broker_settings;
 //mod command;
@@ -29,9 +30,9 @@ pub use sessions::Sessions;
 pub use subs::Subs;
 pub use trigger::Trigger;
 /// The MPSC sender for controlling a running server
-pub type CommandSender = channel::Sender<(Arc<Peer>, Packet)>;
+pub type CommandSender = mpsc::UnboundedSender<(Arc<Peer>, Packet)>;
 /// The MPSC sender for controlling a running server
-pub type CommandReceiver = channel::Receiver<(Arc<Peer>, Packet)>;
+pub type CommandReceiver = mpsc::UnboundedReceiver<(Arc<Peer>, Packet)>;
 
-type PacketReceiver = channel::Receiver<Packet>;
-type PacketSender = channel::Sender<Packet>;
+type PacketReceiver = mpsc::UnboundedReceiver<Packet>;
+type PacketSender = mpsc::UnboundedSender<Packet>;

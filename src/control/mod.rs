@@ -1,7 +1,7 @@
 use crate::{BrokerSettings, Peer, Publisher, Sessions};
-use async_std::sync::{Arc, RwLock};
 use log::error;
 use sage_mqtt::{ConnAck, Packet, PingResp, ReasonCode};
+use std::sync::{Arc, RwLock};
 
 mod connect;
 mod publish;
@@ -16,7 +16,7 @@ pub async fn run(
 ) {
     match packet {
         Packet::Subscribe(packet) => subscribe::run(settings, packet, peer).await,
-        Packet::PingReq => peer.send(PingResp.into()).await,
+        Packet::PingReq => peer.send(PingResp.into()),
         Packet::Connect(packet) => {
             connect::run(settings, sessions, packet, peer, publisher.cache().clone()).await
         }
@@ -29,8 +29,7 @@ pub async fn run(
                     ..Default::default()
                 }
                 .into(),
-            )
-            .await;
+            );
         }
     }
 }

@@ -1,5 +1,5 @@
 // use async_std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use async_std::sync::Arc;
+use std::sync::Arc;
 
 #[derive(Default, Debug)]
 pub struct Cache;

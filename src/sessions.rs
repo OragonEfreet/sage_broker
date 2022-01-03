@@ -1,5 +1,5 @@
 use crate::Session;
-use async_std::sync::Arc;
+use std::sync::Arc;
 
 /// Holds sessions manipulated from the Command Loop
 #[derive(Default, Debug)]

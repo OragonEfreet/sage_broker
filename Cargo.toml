@@ -1,6 +1,6 @@
 [package]
 name = "sage_broker"
-version = "0.2.0"
+version = "0.3.0"
 description = "MQTT 5.0 broker"
 authors = ["Kevin D'ORANGE <kevin.dorange@gmail.com>"]
 edition = "2021"
@@ -13,14 +13,13 @@ categories = ["command-line-utilities", "network-programming", "web-programming"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-std = {version="1.10.0",features = ["attributes"]}
 ctrlc = "3.2.1"
 futures = "0.3.14"
 log = "0.4.14"
 nanoid = "0.4.0"
 pretty_env_logger = "0.4.0"
-#sage_mqtt = "0.4" 
-sage_mqtt = { git = "https://github.com/OragonEfreet/sage_mqtt.git", branch = "main" }
+sage_mqtt = "0.5" 
+tokio = {version="1.15.0",features = ["sync", "rt-multi-thread", "net", "time", "macros"]}
 
 [dev-dependencies]
 rand = "0.8.0"

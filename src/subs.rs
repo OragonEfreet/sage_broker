@@ -1,7 +1,6 @@
 use crate::Cache;
-use async_std::sync::Arc;
 use sage_mqtt::{SubscriptionOptions, Topic};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 /// The list of all subcriptions registered by the broker
 #[derive(Debug, Clone)]

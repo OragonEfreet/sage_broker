@@ -1,13 +1,13 @@
 use crate::{service, BrokerSettings, CommandSender, Peer, Trigger};
-use async_std::{
-    channel, future,
-    net::{TcpListener, TcpStream},
-    sync::Arc,
-    task::{self, JoinHandle},
-};
 use futures::future::join_all;
 use log::{error, info};
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
+use tokio::{
+    net::{TcpListener, TcpStream},
+    sync::mpsc,
+    task::{self, JoinHandle},
+    time,
+};
 
 /// Creates a channel for control packets and starts the command loop and the
 /// listen Tcp loop.
@@ -32,9 +32,9 @@ pub async fn listen_tcp(
     let mut tcp_listeners = Vec::new();
     let mut tcp_senders = Vec::new();
 
-    while !shutdown.is_fired().await {
+    while !shutdown.is_fired() {
         // Listen for 1 second for an incoming connexion
-        if let Ok(result) = future::timeout(listen_timeout, listener.accept()).await {
+        if let Ok(result) = time::timeout(listen_timeout, listener.accept()).await {
             match result {
                 Err(e) => error!("Cannot accept Tcp stream: {}", e.to_string()),
                 Ok((stream, _)) => {
@@ -80,16 +80,16 @@ async fn create_peer(
             // Launch the packet sender loop
             // Create peer
             // Launch the listen peer loop
-            let stream = Arc::new(stream);
 
-            let (packet_sender, packet_receiver) = channel::unbounded();
+            let (packet_sender, packet_receiver) = mpsc::unbounded_channel();
 
             // The send_peer task will end as long as no packet_sender is
             // open anymore.
             // The packet sender is held in the Peer instance, meaning that
             // it is alive as long as the listen_peer is, and any pending
             // task temporary keeping the Peer alive (Command Packets)
-            let sender_task = task::spawn(service::send_peer(packet_receiver, stream.clone()));
+            let (rd, wr) = stream.into_split();
+            let sender_task = task::spawn(service::send_peer(packet_receiver, wr));
 
             // No need to handle this one, a safe close
             // Will always terminate it before the command_loop
@@ -98,7 +98,7 @@ async fn create_peer(
                 Peer::new(peer_addr, packet_sender),
                 command_sender,
                 settings.keep_alive,
-                stream,
+                rd,
                 shutdown,
             ));
 

@@ -1,7 +1,7 @@
 use crate::{Cache, Peer, Subs};
-use async_std::sync::{Arc, RwLock, Weak};
 use log::info;
 use nanoid::nanoid;
+use std::sync::{Arc, RwLock, Weak};
 
 /// Represents a client and holds all of its data, may it be active or not.
 /// If the client is connected, `peer` is used to retrieve its information and
@@ -42,13 +42,13 @@ impl Session {
     }
 
     /// Assign the session to another peer
-    pub async fn bind(&self, peer: Arc<Peer>) {
-        *(self.peer.write().await) = Arc::downgrade(&peer);
+    pub fn bind(&self, peer: Arc<Peer>) {
+        *(self.peer.write().unwrap()) = Arc::downgrade(&peer);
     }
 
     /// Gets the currently bound peer as as owning pointer
-    pub async fn peer(&self) -> Option<Arc<Peer>> {
-        self.peer.read().await.upgrade()
+    pub fn peer(&self) -> Option<Arc<Peer>> {
+        self.peer.read().unwrap().upgrade()
     }
 
     /// Gets the subscriptions this session has

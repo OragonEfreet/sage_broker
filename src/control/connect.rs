@@ -1,8 +1,10 @@
 use crate::{BrokerSettings, Cache, Peer, Session, Sessions};
-use async_std::sync::{Arc, RwLock};
 use nanoid::nanoid;
 use sage_mqtt::{ConnAck, Connect, Disconnect, ReasonCode};
-use std::cmp::min;
+use std::{
+    cmp::min,
+    sync::{Arc, RwLock},
+};
 
 pub async fn run(
     settings: Arc<BrokerSettings>,
@@ -27,17 +29,16 @@ pub async fn run(
         // First, we get the may be existing session from the db:
         // TODO: This can be simplified
         let session = {
-            if let Some(session) = sessions.write().await.take(&client_id) {
+            if let Some(session) = sessions.write().unwrap().take(&client_id) {
                 // If the existing session has a peer, it'll be disconnected with takeover
-                if let Some(peer) = session.peer().await {
+                if let Some(peer) = session.peer() {
                     peer.send_close(
                         Disconnect {
                             reason_code: ReasonCode::SessionTakenOver,
                             ..Default::default()
                         }
                         .into(),
-                    )
-                    .await;
+                    );
                 }
 
                 if clean_start {
@@ -45,7 +46,7 @@ pub async fn run(
                     Arc::new(Session::new(&client_id, peer.clone(), cache))
                 } else {
                     connack.session_present = true;
-                    session.bind(peer.clone()).await;
+                    session.bind(peer.clone());
                     session
                 }
             } else {
@@ -53,11 +54,11 @@ pub async fn run(
                 Arc::new(Session::new(&client_id, peer.clone(), cache))
             }
         };
-        sessions.write().await.add(session.clone());
-        peer.bind(session).await;
-        peer.send(connack.into()).await;
+        sessions.write().unwrap().add(session.clone());
+        peer.bind(session);
+        peer.send(connack.into());
     } else {
-        peer.send_close(connack.into()).await;
+        peer.send_close(connack.into());
     }
 }
 

@@ -1,13 +1,12 @@
-use async_std::{
-    channel,
-    net::{TcpListener, ToSocketAddrs},
-    sync::{Arc, RwLock},
-    task,
-};
 use log::{error, info};
 use sage_broker::{service, BrokerSettings, Sessions, Trigger};
+use std::{
+    net::ToSocketAddrs,
+    sync::{Arc, RwLock},
+};
+use tokio::{net::TcpListener, sync::mpsc, task};
 
-#[async_std::main]
+#[tokio::main]
 async fn main() {
     pretty_env_logger::init();
     if let Some(listener) = bind("localhost:1883").await {
@@ -18,7 +17,7 @@ async fn main() {
 
         // Create the command packet channel and spawn a new
         // task for command packet treatment.
-        let (command_sender, command_receiver) = channel::unbounded();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
 
         info!("Creating the command loop...");
         let command_loop = task::spawn(service::command_loop(
@@ -41,15 +40,15 @@ async fn main() {
 
         // Use the ctrlc crate to handle manual termination
         ctrlc::set_handler(move || {
-            if task::block_on(shutdown.is_fired()) {
+            if shutdown.is_fired() {
                 std::process::exit(0);
             } else {
-                task::block_on(shutdown.fire())
+                shutdown.fire()
             }
         })
         .expect("Error setting Ctrl-C handler");
 
-        server.await;
+        server.await.unwrap();
         info!("Listen loop ended");
 
         // When `broker.is_shutting_down().await` returns true, `listen_tcp` will
@@ -77,7 +76,7 @@ async fn main() {
         // Command loop will itself wait for the end of all pending tasks
         // registered by any other part of the server
         info!("Waiting for command loop to complete...");
-        command_loop.await;
+        command_loop.await.unwrap();
 
         info!("Done.");
     }
@@ -91,7 +90,7 @@ async fn main() {
 pub async fn bind(addr: &str) -> Option<TcpListener> {
     let addr = String::from(addr);
 
-    if let Ok(addrs) = addr.to_socket_addrs().await {
+    if let Ok(addrs) = addr.to_socket_addrs() {
         let addrs = addrs
             .map(|addr| addr.to_string())
             .collect::<Vec<String>>()
