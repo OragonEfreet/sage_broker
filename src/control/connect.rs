@@ -32,13 +32,14 @@ pub async fn run(
             if let Some(session) = sessions.write().unwrap().take(&client_id) {
                 // If the existing session has a peer, it'll be disconnected with takeover
                 if let Some(peer) = session.peer() {
-                    peer.send_close(
+                    peer.send(
                         Disconnect {
                             reason_code: ReasonCode::SessionTakenOver,
                             ..Default::default()
                         }
                         .into(),
                     );
+                    peer.close();
                 }
 
                 if clean_start {
@@ -58,7 +59,8 @@ pub async fn run(
         peer.bind(session);
         peer.send(connack.into());
     } else {
-        peer.send_close(connack.into());
+        peer.send(connack.into());
+        peer.close();
     }
 }
 

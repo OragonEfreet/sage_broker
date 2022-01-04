@@ -47,7 +47,8 @@ pub async fn listen_peer(
                 reason_code: ReasonCode::ServerShuttingDown,
                 ..Default::default()
             };
-            peer.send_close(packet.into());
+            peer.send(packet.into());
+            peer.close();
             break;
         }
 
@@ -79,10 +80,9 @@ pub async fn listen_peer(
                             reason_code: e.into(),
                             ..Default::default()
                         };
-                        peer.send_close(packet.into());
-                    } else {
-                        peer.close();
+                        peer.send(packet.into());
                     }
+                    peer.close();
                 }
             }
 
@@ -101,7 +101,8 @@ pub async fn listen_peer(
                         reason_code: ReasonCode::KeepAliveTimeout,
                         ..Default::default()
                     };
-                    peer.send_close(packet.into());
+                    peer.send(packet.into());
+                    peer.close();
                 }
             }
         }

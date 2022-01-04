@@ -1,6 +1,5 @@
 use crate::{control, BrokerSettings, CommandReceiver, Publisher, Sessions, Trigger};
-use log::{debug, error, info};
-use sage_mqtt::{Disconnect, ReasonCode};
+use log::{error, info};
 use std::sync::{Arc, RwLock};
 
 /// The command loop is reponsible from receiving and treating any command
@@ -27,35 +26,14 @@ pub async fn command_loop(
 
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.recv().await {
-        debug!(
-            "[{:?}] <<< {:#?}",
-            if let Some(s) = peer.session() {
-                s.client_id().into()
-            } else {
-                String::from("N/A")
-            },
-            packet
-        );
-        // If the broker is stopping, let's notify here the client with a
-        // DISCONNECT and close the peer
-        if shutdown.is_fired() {
-            peer.send_close(
-                Disconnect {
-                    reason_code: ReasonCode::ServerShuttingDown,
-                    ..Default::default()
-                }
-                .into(),
-            );
-        } else {
-            control::run(
-                settings.clone(),
-                sessions.clone(),
-                packet,
-                peer,
-                publisher.clone(),
-            )
-            .await;
-        };
+        control::run(
+            settings.clone(),
+            sessions.clone(),
+            packet,
+            peer,
+            publisher.clone(),
+        )
+        .await;
     }
     info!("Stop command loop");
     from_command_channel

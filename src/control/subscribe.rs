@@ -53,13 +53,14 @@ pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Pee
     } else {
         // If not session present, close the peer.
         // Send an UnspecifiedError error for each topic
-        peer.send_close(
+        peer.send(
             SubAck {
                 packet_identifier: packet.packet_identifier,
                 reason_codes: vec![ReasonCode::UnspecifiedError; packet.subscriptions.len()],
                 ..Default::default()
             }
             .into(),
-        )
+        );
+        peer.close();
     }
 }

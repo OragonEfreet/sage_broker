@@ -23,13 +23,14 @@ pub async fn run(
         Packet::Publish(packet) => publish::run(packet, sessions).await,
         _ => {
             error!("Unsupported packet: {:#?}", packet);
-            peer.send_close(
+            peer.send(
                 ConnAck {
                     reason_code: ReasonCode::ImplementationSpecificError,
                     ..Default::default()
                 }
                 .into(),
             );
+            peer.close();
         }
     }
 }

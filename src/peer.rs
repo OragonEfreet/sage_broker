@@ -53,11 +53,6 @@ impl Peer {
         self.closing.fire();
     }
 
-    pub fn send_close(&self, packet: Packet) {
-        self.send(packet);
-        self.close();
-    }
-
     pub fn send(&self, packet: Packet) {
         if let Err(e) = self.packet_sender.send(packet) {
             error!("Cannot send packet to channel: {:?}", e);
