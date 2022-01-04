@@ -1,5 +1,6 @@
 use crate::{control, BrokerSettings, CommandReceiver, Publisher, Sessions, Trigger};
 use log::{error, info};
+use sage_mqtt::Disconnect;
 use std::sync::{Arc, RwLock};
 
 /// The command loop is reponsible from receiving and treating any command
@@ -26,14 +27,24 @@ pub async fn command_loop(
 
     info!("Start command loop");
     while let Some((peer, packet)) = from_command_channel.recv().await {
-        control::run(
+        if let Err(reason_code) = control::run(
             settings.clone(),
             sessions.clone(),
             packet,
-            peer,
+            peer.clone(),
             publisher.clone(),
         )
-        .await;
+        .await
+        {
+            peer.send(
+                Disconnect {
+                    reason_code,
+                    ..Default::default()
+                }
+                .into(),
+            );
+            peer.close();
+        }
     }
     info!("Stop command loop");
     from_command_channel

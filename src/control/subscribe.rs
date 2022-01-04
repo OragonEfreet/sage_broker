@@ -17,7 +17,11 @@ use std::sync::Arc;
 /// - SharedSubscriptionsNotSupported: The Server does not support Shared Subscriptions for this Client.
 /// + SubscriptionIdentifiersNotSupported: The Server does not support Subscription Identifiers; the subscription is not accepted.
 /// - WildcardSubscriptionsNotSupported: The Server does not support Wildcard Subscriptions; the subscription is not accepted.
-pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Peer>) {
+pub async fn run(
+    settings: Arc<BrokerSettings>,
+    packet: Subscribe,
+    peer: Arc<Peer>,
+) -> Result<(), ReasonCode> {
     // Take the client if exist, from the peer, and at it a new sub
     if let Some(session) = peer.session() {
         let mut suback = SubAck {
@@ -63,4 +67,5 @@ pub async fn run(settings: Arc<BrokerSettings>, packet: Subscribe, peer: Arc<Pee
         );
         peer.close();
     }
+    Ok(())
 }

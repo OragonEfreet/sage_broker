@@ -12,7 +12,7 @@ pub async fn run(
     connect: Connect,
     peer: Arc<Peer>,
     cache: Arc<Cache>,
-) {
+) -> Result<(), ReasonCode> {
     // First, we prepare an first connack using broker policy
     // and infer the actual client_id requested for this client
     let mut connack = acknowledge_connect(settings, &connect);
@@ -62,6 +62,7 @@ pub async fn run(
         peer.send(connack.into());
         peer.close();
     }
+    Ok(())
 }
 
 fn acknowledge_connect(settings: Arc<BrokerSettings>, connect: &Connect) -> ConnAck {
